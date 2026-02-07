@@ -1,0 +1,100 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+}
+
+group = project.property('GROUP')
+version = project.property('VERSION')
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.11.0'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            groupId = project.property('GROUP')
+            artifactId = project.property('POM_ARTIFACT_ID')
+            version = project.property('VERSION')
+
+            pom {
+                name = project.property('POM_NAME')
+                description = project.property('POM_DESCRIPTION')
+                url = project.property('POM_URL')
+
+                licenses {
+                    license {
+                        name = project.property('POM_LICENCE_NAME')
+                        url = project.property('POM_LICENCE_URL')
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = project.property('POM_DEVELOPER_ID')
+                        name = project.property('POM_DEVELOPER_NAME')
+                        url = project.property('POM_DEVELOPER_URL')
+                    }
+                }
+
+                scm {
+                    url = project.property('POM_SCM_URL')
+                    connection = project.property('POM_SCM_CONNECTION')
+                    developerConnection = project.property('POM_SCM_DEV_CONNECTION')
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "OSSRH"
+            def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+            credentials {
+                username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME") ?: ""
+                password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD") ?: ""
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
+    def signingPassword = findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
+    if (signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+    }
+    sign publishing.publications.mavenJava
+}
+
+tasks.withType(Sign).configureEach {
+    onlyIf { !version.endsWith('SNAPSHOT') }
+}
+
+javadoc {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
