@@ -245,6 +245,56 @@ try {
 }
 ```
 
+## CI/CD
+
+This project includes two GitHub Actions workflows:
+
+- **CI** (`.github/workflows/ci.yml`) -- runs on every push/PR to `main`, builds and tests against Java 17 and 21.
+- **Publish** (`.github/workflows/publish.yml`) -- automatically publishes to Maven Central when you create a GitHub Release.
+
+## Publishing to Maven Central
+
+### One-Time Setup
+
+1. **Register with Sonatype**: Create an account at [central.sonatype.com](https://central.sonatype.com/) and claim the `com.lettr` namespace (they verify domain ownership via DNS TXT record).
+
+2. **Generate a Central Portal user token**: Go to [central.sonatype.com](https://central.sonatype.com) → click your name (top right) → **View Account** → **Generate User Token**. This gives you a token username and token password (both random strings).
+
+3. **Generate a GPG key** for signing artifacts:
+
+```bash
+gpg --gen-key
+gpg --list-keys --keyid-format long   # find your key ID
+gpg --keyserver keyserver.ubuntu.com --send-keys YOUR_KEY_ID
+```
+
+4. **Add 4 secrets** to your GitHub repo (`Settings > Secrets and variables > Actions`):
+
+| Secret | Value |
+|--------|-------|
+| `CENTRAL_PORTAL_TOKEN_USERNAME` | Token username (from step 2) |
+| `CENTRAL_PORTAL_TOKEN_PASSWORD` | Token password (from step 2) |
+| `SIGNING_KEY` | Output of `gpg --export-secret-keys --armor YOUR_KEY_ID` |
+| `SIGNING_PASSWORD` | The passphrase you set during `gpg --gen-key` |
+
+### Publishing a New Version
+
+Every time you want to release:
+
+1. Update the version in `gradle.properties`
+2. Commit, push, and create a **GitHub Release** (e.g. tag `v0.2.0`)
+3. The workflow publishes automatically with `publishing_type=automatic` -- if validation passes, it goes straight to Maven Central (~30 min)
+
+### Publishing Locally (optional)
+
+```bash
+export CENTRAL_PORTAL_TOKEN_USERNAME=your-token-username
+export CENTRAL_PORTAL_TOKEN_PASSWORD=your-token-password
+export SIGNING_KEY="$(gpg --export-secret-keys --armor YOUR_KEY_ID)"
+export SIGNING_PASSWORD=your-passphrase
+
+./gradlew publish
+```
 
 ## License
 

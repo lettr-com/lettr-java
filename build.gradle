@@ -69,16 +69,16 @@ publishing {
 
     repositories {
         maven {
-            name = "OSSRH"
-            def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            name = "CentralPortal"
+            def releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+            def snapshotsRepoUrl = "https://central.sonatype.com/repository/maven-snapshots/"
             url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
 
-            // Use Sonatype user tokens (not account credentials)
-            // Generate at: https://s01.oss.sonatype.org → Profile → User Token
+            // Use Central Portal user tokens
+            // Generate at: https://central.sonatype.com → View Account → Generate User Token
             credentials {
-                username = findProperty("sonatypeTokenUsername") ?: System.getenv("SONATYPE_TOKEN_USERNAME") ?: ""
-                password = findProperty("sonatypeTokenPassword") ?: System.getenv("SONATYPE_TOKEN_PASSWORD") ?: ""
+                username = findProperty("centralPortalTokenUsername") ?: System.getenv("CENTRAL_PORTAL_TOKEN_USERNAME") ?: ""
+                password = findProperty("centralPortalTokenPassword") ?: System.getenv("CENTRAL_PORTAL_TOKEN_PASSWORD") ?: ""
             }
         }
     }
