@@ -245,69 +245,6 @@ try {
 }
 ```
 
-## CI/CD
-
-This project includes two GitHub Actions workflows:
-
-- **CI** (`.github/workflows/ci.yml`) -- runs on every push/PR to `main`, builds and tests against Java 11, 17, and 21.
-- **Publish** (`.github/workflows/publish.yml`) -- automatically publishes to Maven Central when you create a GitHub Release.
-
-## Publishing to Maven Central
-
-### One-Time Setup
-
-These steps only need to be done once:
-
-1. **Register with Sonatype**: Create an account at [central.sonatype.com](https://central.sonatype.com/) and claim the `com.lettr` namespace (they'll verify domain ownership via DNS TXT record).
-
-2. **Generate a user token**: Go to [s01.oss.sonatype.org](https://s01.oss.sonatype.org) → log in → click your username (top right) → **Profile** → select **User Token** from the dropdown → **Access User Token**. This gives you a token username and token password (both are random strings). These are used instead of your actual account credentials -- they're more secure and can be revoked independently.
-
-3. **Generate a GPG key** for signing artifacts:
-
-```bash
-gpg --gen-key
-gpg --keyserver keyserver.ubuntu.com --send-keys YOUR_KEY_ID
-```
-
-4. **Add 4 secrets** to your GitHub repo (`Settings > Secrets and variables > Actions`):
-
-| Secret | Value |
-|--------|-------|
-| `SONATYPE_TOKEN_USERNAME` | User token username (from step 2) |
-| `SONATYPE_TOKEN_PASSWORD` | User token password (from step 2) |
-| `SIGNING_KEY` | Output of `gpg --export-secret-keys --armor YOUR_KEY_ID` |
-| `SIGNING_PASSWORD` | Your GPG key passphrase |
-
-### Publishing a New Version
-
-Every time you want to release:
-
-1. Update the version in `gradle.properties`:
-
-```properties
-VERSION=0.2.0
-```
-
-2. Commit, push, and create a **GitHub Release** (e.g. tag `v0.2.0`).
-
-3. The `publish.yml` workflow triggers automatically, builds the JAR, signs it, and uploads to Maven Central staging.
-
-4. Go to [s01.oss.sonatype.org](https://s01.oss.sonatype.org), find the staging repo, **Close** it (runs validation), then **Release** it. Artifacts appear on Maven Central within ~30 minutes.
-
-> After your first successful release, you can request Sonatype to enable auto-release so you skip step 4 entirely.
-
-### Publishing Locally (optional)
-
-You can also publish from your machine:
-
-```bash
-export SONATYPE_TOKEN_USERNAME=your-token-username
-export SONATYPE_TOKEN_PASSWORD=your-token-password
-export SIGNING_KEY="$(gpg --export-secret-keys --armor YOUR_KEY_ID)"
-export SIGNING_PASSWORD=your-passphrase
-
-./gradlew publish
-```
 
 ## License
 
