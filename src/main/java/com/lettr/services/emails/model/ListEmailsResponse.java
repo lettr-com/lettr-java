@@ -1,6 +1,9 @@
 package com.lettr.services.emails.model;
 
 import com.google.gson.annotations.SerializedName;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -8,28 +11,30 @@ import java.util.List;
  */
 public class ListEmailsResponse {
 
-    private List<EmailEvent> results;
+    private Events events;
 
-    @SerializedName("total_count")
-    private int totalCount;
+    @Nonnull public Events getEvents() { return events; }
 
-    private Pagination pagination;
+    /** Container for email events with pagination. */
+    public static class Events {
 
-    public List<EmailEvent> getResults() {
-        return results;
+        private List<EmailEvent> data;
+
+        @SerializedName("total_count")
+        private int totalCount;
+
+        private String from;
+        private String to;
+        private Pagination pagination;
+
+        @Nonnull public List<EmailEvent> getData() { return data; }
+        public int getTotalCount() { return totalCount; }
+        @Nonnull public String getFrom() { return from; }
+        @Nonnull public String getTo() { return to; }
+        @Nonnull public Pagination getPagination() { return pagination; }
     }
 
-    public int getTotalCount() {
-        return totalCount;
-    }
-
-    public Pagination getPagination() {
-        return pagination;
-    }
-
-    /**
-     * Cursor-based pagination info.
-     */
+    /** Cursor-based pagination info. */
     public static class Pagination {
 
         @SerializedName("next_cursor")
@@ -38,20 +43,13 @@ public class ListEmailsResponse {
         @SerializedName("per_page")
         private int perPage;
 
-        public String getNextCursor() {
-            return nextCursor;
-        }
-
-        public int getPerPage() {
-            return perPage;
-        }
+        /** Cursor for the next page, or null if there are no more results. */
+        @Nullable public String getNextCursor() { return nextCursor; }
+        public int getPerPage() { return perPage; }
     }
 
     @Override
     public String toString() {
-        return "ListEmailsResponse{" +
-                "totalCount=" + totalCount +
-                ", results=" + results +
-                '}';
+        return "ListEmailsResponse{events=" + (events != null ? "totalCount=" + events.totalCount : "null") + '}';
     }
 }

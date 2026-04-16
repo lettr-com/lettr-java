@@ -1,8 +1,10 @@
 package com.lettr.services.emails.model;
 
+import javax.annotation.Nonnull;
+
 /**
  * Represents a file attachment for an email.
- * The file data must be base64 encoded.
+ * All three fields ({@code name}, {@code type}, {@code data}) are required.
  */
 public class Attachment {
 
@@ -16,21 +18,14 @@ public class Attachment {
         this.data = builder.data;
     }
 
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getData() {
-        return data;
-    }
+    @Nonnull public String getName() { return name; }
+    @Nonnull public String getType() { return type; }
+    @Nonnull public String getData() { return data; }
 
     public static class Builder {
         private String name;
@@ -40,29 +35,40 @@ public class Attachment {
         private Builder() {}
 
         /**
-         * Sets the filename of the attachment (e.g. "invoice.pdf").
+         * <b>(required)</b> Sets the filename of the attachment (e.g. "invoice.pdf").
+         * Max length: 255 characters.
          */
-        public Builder name(String name) {
+        @Nonnull
+        public Builder name(@Nonnull String name) {
             this.name = name;
             return this;
         }
 
         /**
-         * Sets the MIME type of the attachment (e.g. "application/pdf").
+         * <b>(required)</b> Sets the MIME type of the attachment (e.g. "application/pdf").
+         * Max length: 255 characters.
          */
-        public Builder type(String type) {
+        @Nonnull
+        public Builder type(@Nonnull String type) {
             this.type = type;
             return this;
         }
 
         /**
-         * Sets the base64-encoded file content.
+         * <b>(required)</b> Sets the base64-encoded file content (no line breaks).
          */
-        public Builder data(String data) {
+        @Nonnull
+        public Builder data(@Nonnull String data) {
             this.data = data;
             return this;
         }
 
+        /**
+         * Builds the {@link Attachment} instance.
+         *
+         * @throws IllegalArgumentException if {@code name}, {@code type}, or {@code data} is missing
+         */
+        @Nonnull
         public Attachment build() {
             if (name == null || name.isEmpty()) {
                 throw new IllegalArgumentException("Attachment name is required");

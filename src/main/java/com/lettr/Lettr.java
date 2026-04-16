@@ -2,8 +2,12 @@ package com.lettr;
 
 import com.lettr.services.domains.Domains;
 import com.lettr.services.emails.Emails;
+import com.lettr.services.projects.Projects;
+import com.lettr.services.system.System;
 import com.lettr.services.templates.Templates;
 import com.lettr.services.webhooks.Webhooks;
+
+import javax.annotation.Nonnull;
 
 /**
  * Main entry point for the Lettr Java SDK.
@@ -13,7 +17,6 @@ import com.lettr.services.webhooks.Webhooks;
  * <pre>{@code
  * Lettr lettr = new Lettr("your-api-key");
  *
- * // Send an email
  * CreateEmailResponse response = lettr.emails().send(
  *     CreateEmailOptions.builder()
  *         .from("sender@example.com")
@@ -22,9 +25,6 @@ import com.lettr.services.webhooks.Webhooks;
  *         .html("<p>Hello, world!</p>")
  *         .build()
  * );
- *
- * // List domains
- * ListDomainsResponse domains = lettr.domains().list();
  * }</pre>
  *
  * @see <a href="https://lettr.com">Lettr Documentation</a>
@@ -37,48 +37,30 @@ public class Lettr {
      * Creates a new Lettr client with the given API key.
      *
      * @param apiKey your Lettr API key (find it at https://app.lettr.com)
-     * @throws IllegalArgumentException if apiKey is null or empty
+     * @throws IllegalArgumentException if {@code apiKey} is null or empty
      */
-    public Lettr(String apiKey) {
+    public Lettr(@Nonnull String apiKey) {
         if (apiKey == null || apiKey.isEmpty()) {
             throw new IllegalArgumentException("API key is required. Get yours at https://app.lettr.com");
         }
         this.apiKey = apiKey;
     }
 
-    /**
-     * Returns the Emails service for sending and retrieving emails.
-     *
-     * @return Emails service instance
-     */
-    public Emails emails() {
-        return new Emails(apiKey);
-    }
+    /** Returns the Emails service for sending and retrieving emails. */
+    @Nonnull public Emails emails() { return new Emails(apiKey); }
 
-    /**
-     * Returns the Domains service for managing sending domains.
-     *
-     * @return Domains service instance
-     */
-    public Domains domains() {
-        return new Domains(apiKey);
-    }
+    /** Returns the Domains service for managing sending domains. */
+    @Nonnull public Domains domains() { return new Domains(apiKey); }
 
-    /**
-     * Returns the Webhooks service for managing webhook configurations.
-     *
-     * @return Webhooks service instance
-     */
-    public Webhooks webhooks() {
-        return new Webhooks(apiKey);
-    }
+    /** Returns the Webhooks service for managing webhook configurations. */
+    @Nonnull public Webhooks webhooks() { return new Webhooks(apiKey); }
 
-    /**
-     * Returns the Templates service for managing email templates.
-     *
-     * @return Templates service instance
-     */
-    public Templates templates() {
-        return new Templates(apiKey);
-    }
+    /** Returns the Templates service for managing email templates. */
+    @Nonnull public Templates templates() { return new Templates(apiKey); }
+
+    /** Returns the Projects service for listing projects. */
+    @Nonnull public Projects projects() { return new Projects(apiKey); }
+
+    /** Returns the System service for health checks and API key validation. */
+    @Nonnull public System system() { return new System(apiKey); }
 }

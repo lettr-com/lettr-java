@@ -1,18 +1,13 @@
 package com.lettr.services.emails.model;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Parameters for listing sent emails with optional filtering and pagination.
- *
- * <p>Example usage:</p>
- * <pre>{@code
- * ListEmailsParams params = ListEmailsParams.builder()
- *     .perPage(50)
- *     .recipients("user@example.com")
- *     .build();
- * }</pre>
+ * All fields are optional.
  */
 public class ListEmailsParams {
 
@@ -30,13 +25,13 @@ public class ListEmailsParams {
         this.to = builder.to;
     }
 
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
 
-    /**
-     * Converts this params object to a map of query parameters.
-     */
+    /** Converts this params object to a map of query parameters. */
+    @Nonnull
     public Map<String, String> toQueryParams() {
         Map<String, String> params = new HashMap<>();
         if (perPage != null) params.put("per_page", perPage.toString());
@@ -56,46 +51,42 @@ public class ListEmailsParams {
 
         private Builder() {}
 
-        /**
-         * Sets the number of results per page (1-100).
-         */
+        /** <b>(optional)</b> Sets the number of results per page (1–100). */
+        @Nonnull
         public Builder perPage(int perPage) {
             this.perPage = perPage;
             return this;
         }
 
-        /**
-         * Sets the pagination cursor from a previous response.
-         */
-        public Builder cursor(String cursor) {
+        /** <b>(optional)</b> Sets the pagination cursor from a previous response. */
+        @Nonnull
+        public Builder cursor(@Nullable String cursor) {
             this.cursor = cursor;
             return this;
         }
 
-        /**
-         * Filters by recipient email address.
-         */
-        public Builder recipients(String recipients) {
+        /** <b>(optional)</b> Filters by recipient email address. */
+        @Nonnull
+        public Builder recipients(@Nullable String recipients) {
             this.recipients = recipients;
             return this;
         }
 
-        /**
-         * Filters emails sent on or after this date (ISO 8601 format, e.g. "2024-01-01").
-         */
-        public Builder from(String from) {
+        /** <b>(optional)</b> Filters emails sent on or after this date (ISO 8601). */
+        @Nonnull
+        public Builder from(@Nullable String from) {
             this.from = from;
             return this;
         }
 
-        /**
-         * Filters emails sent on or before this date (ISO 8601 format, e.g. "2024-12-31").
-         */
-        public Builder to(String to) {
+        /** <b>(optional)</b> Filters emails sent on or before this date (ISO 8601). */
+        @Nonnull
+        public Builder to(@Nullable String to) {
             this.to = to;
             return this;
         }
 
+        @Nonnull
         public ListEmailsParams build() {
             return new ListEmailsParams(this);
         }
