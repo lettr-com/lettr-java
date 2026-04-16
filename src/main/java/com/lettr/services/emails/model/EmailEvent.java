@@ -124,13 +124,13 @@ public class EmailEvent {
     private String errorCode;
 
     @SerializedName("bounce_class")
-    private String bounceClass;
+    private Integer bounceClass;
 
     @SerializedName("num_retries")
     private Integer numRetries;
 
     @SerializedName("queue_time")
-    private String queueTime;
+    private Integer queueTime;
 
     @SerializedName("target_link_url")
     private String targetLinkUrl;
@@ -147,16 +147,40 @@ public class EmailEvent {
     @SerializedName("user_agent_parsed")
     private UserAgentParsed userAgentParsed;
 
-    // Common getters (always present per spec)
+    @SerializedName("ip_address")
+    private String ipAddress;
+
+    @SerializedName("initial_pixel")
+    private Boolean initialPixel;
+
+    @SerializedName("outbound_tls")
+    private String outboundTls;
+
+    @SerializedName("device_token")
+    private String deviceToken;
+
+    private String fbtype;
+
+    @SerializedName("report_by")
+    private String reportBy;
+
+    @SerializedName("report_to")
+    private String reportTo;
+
+    @SerializedName("remote_addr")
+    private String remoteAddr;
+
+    // Common getters — always present on full event objects (e.g. from /emails/events),
+    // but may be null on list items from GET /emails (which uses a simpler schema).
     @Nonnull public String getEventId() { return eventId; }
     @Nonnull public String getType() { return type; }
     @Nonnull public String getTimestamp() { return timestamp; }
-    @Nonnull public String getRequestId() { return requestId; }
-    @Nonnull public String getRcptTo() { return rcptTo; }
-    @Nonnull public String getRawRcptTo() { return rawRcptTo; }
-    @Nonnull public String getRecipientDomain() { return recipientDomain; }
-    @Nonnull public String getMailboxProvider() { return mailboxProvider; }
-    @Nonnull public String getMailboxProviderRegion() { return mailboxProviderRegion; }
+    @Nullable public String getRequestId() { return requestId; }
+    @Nullable public String getRcptTo() { return rcptTo; }
+    @Nullable public String getRawRcptTo() { return rawRcptTo; }
+    @Nullable public String getRecipientDomain() { return recipientDomain; }
+    @Nullable public String getMailboxProvider() { return mailboxProvider; }
+    @Nullable public String getMailboxProviderRegion() { return mailboxProviderRegion; }
 
     // Optional common fields
     @Nullable public String getMessageId() { return messageId; }
@@ -190,10 +214,11 @@ public class EmailEvent {
     @Nullable public String getReason() { return reason; }
     @Nullable public String getRawReason() { return rawReason; }
     @Nullable public String getErrorCode() { return errorCode; }
-    /** Bounce classification code. Present only on bounce events. */
-    @Nullable public String getBounceClass() { return bounceClass; }
+    /** Bounce classification code. Present on bounce, delay, out_of_band, policy_rejection events. */
+    @Nullable public Integer getBounceClass() { return bounceClass; }
     @Nullable public Integer getNumRetries() { return numRetries; }
-    @Nullable public String getQueueTime() { return queueTime; }
+    /** Time spent in queue in milliseconds. Present on delivery and delay events. */
+    @Nullable public Integer getQueueTime() { return queueTime; }
     /** Clicked URL. Present only on click and amp_click events. */
     @Nullable public String getTargetLinkUrl() { return targetLinkUrl; }
     @Nullable public String getTargetLinkName() { return targetLinkName; }
@@ -203,6 +228,22 @@ public class EmailEvent {
     @Nullable public GeoIp getGeoIp() { return geoIp; }
     /** Parsed user-agent. Present on click and open events. */
     @Nullable public UserAgentParsed getUserAgentParsed() { return userAgentParsed; }
+    /** IP address of the open/click. Present on click, open, initial_open, amp_click, amp_open, amp_initial_open events. */
+    @Nullable public String getIpAddress() { return ipAddress; }
+    /** Whether initial open tracking pixel was included. Present on injection, open, initial_open, amp_open, amp_initial_open events. */
+    @Nullable public Boolean getInitialPixel() { return initialPixel; }
+    /** Whether TLS was used for outbound delivery. Present on delivery and delay events. */
+    @Nullable public String getOutboundTls() { return outboundTls; }
+    /** Device token if applicable. Present on bounce and out_of_band events. */
+    @Nullable public String getDeviceToken() { return deviceToken; }
+    /** Feedback type (e.g. "abuse"). Present on spam_complaint events. */
+    @Nullable public String getFbtype() { return fbtype; }
+    /** Who reported the spam. Present on spam_complaint events. */
+    @Nullable public String getReportBy() { return reportBy; }
+    /** Where the spam report was sent. Present on spam_complaint events. */
+    @Nullable public String getReportTo() { return reportTo; }
+    /** Remote IP address. Present on policy_rejection events. */
+    @Nullable public String getRemoteAddr() { return remoteAddr; }
 
     @Override
     public String toString() {

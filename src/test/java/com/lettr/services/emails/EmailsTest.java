@@ -293,12 +293,12 @@ class EmailsTest {
     @Test
     void emailEventDeserializesBounceFields() {
         String json = "{\"event_id\":\"evt1\",\"type\":\"bounce\",\"timestamp\":\"2024-01-15T10:31:00.000Z\"," +
-                "\"bounce_class\":\"10\",\"reason\":\"550 User not found\",\"raw_reason\":\"550 User not found\"," +
+                "\"bounce_class\":10,\"reason\":\"550 User not found\",\"raw_reason\":\"550 User not found\"," +
                 "\"error_code\":\"550\"}";
 
         EmailEvent event = gson.fromJson(json, EmailEvent.class);
         assertEquals("bounce", event.getType());
-        assertEquals("10", event.getBounceClass());
+        assertEquals(Integer.valueOf(10), event.getBounceClass());
         assertEquals("550 User not found", event.getReason());
         assertEquals("550", event.getErrorCode());
     }

@@ -6,6 +6,8 @@ import com.lettr.services.emails.model.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Service for sending, scheduling, and retrieving emails via the Lettr API.
@@ -74,10 +76,31 @@ public class Emails extends BaseService {
      */
     @Nonnull
     public GetEmailResponse get(@Nonnull String requestId) throws LettrException {
+        return get(requestId, null, null);
+    }
+
+    /**
+     * Get details of a specific email transmission with optional date range filtering.
+     *
+     * @param requestId the request ID returned when the email was sent
+     * @param from      optional start date for the event search range (ISO 8601). Defaults to 10 days ago.
+     * @param to        optional end date for the event search range (ISO 8601). Defaults to now.
+     * @return response containing transmission details and events
+     * @throws LettrException if the request fails
+     * @throws IllegalArgumentException if {@code requestId} is null or empty
+     */
+    @Nonnull
+    public GetEmailResponse get(@Nonnull String requestId, @Nullable String from, @Nullable String to) throws LettrException {
         if (requestId == null || requestId.isEmpty()) {
             throw new IllegalArgumentException("requestId is required");
         }
-        return httpClient.get("/emails/" + requestId, null, GetEmailResponse.class);
+        Map<String, String> params = null;
+        if (from != null || to != null) {
+            params = new LinkedHashMap<>();
+            if (from != null) params.put("from", from);
+            if (to != null) params.put("to", to);
+        }
+        return httpClient.get("/emails/" + requestId, params, GetEmailResponse.class);
     }
 
     /**

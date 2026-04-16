@@ -41,8 +41,8 @@ public class CreateEmailOptions {
     private final String tag;
     private final Map<String, String> headers;
     private final List<Attachment> attachments;
-    private final Map<String, Object> substitution_data;
-    private final Map<String, Object> metadata;
+    private final Map<String, String> substitution_data;
+    private final Map<String, String> metadata;
     private final EmailOptions options;
 
     protected CreateEmailOptions(Builder builder) {
@@ -90,8 +90,8 @@ public class CreateEmailOptions {
     @Nullable public String getTag() { return tag; }
     @Nullable public Map<String, String> getHeaders() { return headers; }
     @Nullable public List<Attachment> getAttachments() { return attachments; }
-    @Nullable public Map<String, Object> getSubstitutionData() { return substitution_data; }
-    @Nullable public Map<String, Object> getMetadata() { return metadata; }
+    @Nullable public Map<String, String> getSubstitutionData() { return substitution_data; }
+    @Nullable public Map<String, String> getMetadata() { return metadata; }
     @Nullable public EmailOptions getOptions() { return options; }
 
     public static class Builder {
@@ -112,8 +112,8 @@ public class CreateEmailOptions {
         protected String tag;
         protected Map<String, String> headers;
         protected List<Attachment> attachments;
-        protected Map<String, Object> substitutionData;
-        protected Map<String, Object> metadata;
+        protected Map<String, String> substitutionData;
+        protected Map<String, String> metadata;
         protected EmailOptions options;
 
         protected Builder() {}
@@ -322,7 +322,7 @@ public class CreateEmailOptions {
          * <b>(optional)</b> Sets substitution data for template variable replacement.
          */
         @Nonnull
-        public Builder substitutionData(@Nullable Map<String, Object> substitutionData) {
+        public Builder substitutionData(@Nullable Map<String, String> substitutionData) {
             this.substitutionData = substitutionData;
             return this;
         }
@@ -331,7 +331,7 @@ public class CreateEmailOptions {
          * <b>(optional)</b> Sets metadata to attach to the email for tracking purposes.
          */
         @Nonnull
-        public Builder metadata(@Nullable Map<String, Object> metadata) {
+        public Builder metadata(@Nullable Map<String, String> metadata) {
             this.metadata = metadata;
             return this;
         }

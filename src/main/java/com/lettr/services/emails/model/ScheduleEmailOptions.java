@@ -85,9 +85,9 @@ public class ScheduleEmailOptions extends CreateEmailOptions {
         @Override @Nonnull
         public Builder attachments(@Nonnull Attachment... attachments) { super.attachments(attachments); return this; }
         @Override @Nonnull
-        public Builder substitutionData(@Nullable Map<String, Object> substitutionData) { super.substitutionData(substitutionData); return this; }
+        public Builder substitutionData(@Nullable Map<String, String> substitutionData) { super.substitutionData(substitutionData); return this; }
         @Override @Nonnull
-        public Builder metadata(@Nullable Map<String, Object> metadata) { super.metadata(metadata); return this; }
+        public Builder metadata(@Nullable Map<String, String> metadata) { super.metadata(metadata); return this; }
         @Override @Nonnull
         public Builder options(@Nullable EmailOptions options) { super.options(options); return this; }
 
