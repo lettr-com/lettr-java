@@ -2,18 +2,13 @@ package com.lettr.services.templates.model;
 
 import com.google.gson.annotations.SerializedName;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
  * Options for creating a new email template.
  *
  * <p>Either {@code html} or {@code json} content must be provided, but not both.</p>
- *
- * <p>Example usage:</p>
- * <pre>{@code
- * CreateTemplateOptions options = CreateTemplateOptions.builder()
- *     .name("Welcome Email")
- *     .html("<p>Hello {{FIRST_NAME}}!</p>")
- *     .build();
- * }</pre>
  */
 public class CreateTemplateOptions {
 
@@ -21,11 +16,8 @@ public class CreateTemplateOptions {
     private final String html;
     private final String json;
 
-    @SerializedName("project_id")
-    private final Integer projectId;
-
-    @SerializedName("folder_id")
-    private final Integer folderId;
+    @SerializedName("project_id") private final Integer projectId;
+    @SerializedName("folder_id")  private final Integer folderId;
 
     private CreateTemplateOptions(Builder builder) {
         this.name = builder.name;
@@ -35,15 +27,16 @@ public class CreateTemplateOptions {
         this.folderId = builder.folderId;
     }
 
+    @Nonnull
     public static Builder builder() {
         return new Builder();
     }
 
-    public String getName() { return name; }
-    public String getHtml() { return html; }
-    public String getJson() { return json; }
-    public Integer getProjectId() { return projectId; }
-    public Integer getFolderId() { return folderId; }
+    @Nonnull public String getName() { return name; }
+    @Nullable public String getHtml() { return html; }
+    @Nullable public String getJson() { return json; }
+    @Nullable public Integer getProjectId() { return projectId; }
+    @Nullable public Integer getFolderId() { return folderId; }
 
     public static class Builder {
         private String name;
@@ -54,49 +47,32 @@ public class CreateTemplateOptions {
 
         private Builder() {}
 
-        /**
-         * Sets the template name (required).
-         */
-        public Builder name(String name) {
-            this.name = name;
-            return this;
-        }
+        /** <b>(required)</b> Sets the template name. Max length: 255. */
+        @Nonnull public Builder name(@Nonnull String name) { this.name = name; return this; }
 
         /**
-         * Sets the HTML content for the template.
+         * <b>(required if json not provided)</b> Sets the HTML content for custom HTML templates.
          * Mutually exclusive with {@link #json(String)}.
          */
-        public Builder html(String html) {
-            this.html = html;
-            return this;
-        }
+        @Nonnull public Builder html(@Nullable String html) { this.html = html; return this; }
 
         /**
-         * Sets the Topol editor JSON content for the template.
+         * <b>(required if html not provided)</b> Sets the Topol JSON content for visual editor templates.
          * Mutually exclusive with {@link #html(String)}.
          */
-        public Builder json(String json) {
-            this.json = json;
-            return this;
-        }
+        @Nonnull public Builder json(@Nullable String json) { this.json = json; return this; }
+
+        /** <b>(optional)</b> Sets the project ID. Defaults to the team's default project. */
+        @Nonnull public Builder projectId(int projectId) { this.projectId = projectId; return this; }
+
+        /** <b>(optional)</b> Sets the folder ID. Defaults to the first folder in the project. */
+        @Nonnull public Builder folderId(int folderId) { this.folderId = folderId; return this; }
 
         /**
-         * Sets the project ID to create the template in.
-         * If not specified, uses the team's default project.
+         * @throws IllegalArgumentException if {@code name} is missing, neither {@code html} nor
+         *         {@code json} is provided, or both are provided
          */
-        public Builder projectId(int projectId) {
-            this.projectId = projectId;
-            return this;
-        }
-
-        /**
-         * Sets the folder ID within the project.
-         */
-        public Builder folderId(int folderId) {
-            this.folderId = folderId;
-            return this;
-        }
-
+        @Nonnull
         public CreateTemplateOptions build() {
             if (name == null || name.isEmpty()) {
                 throw new IllegalArgumentException("'name' is required");

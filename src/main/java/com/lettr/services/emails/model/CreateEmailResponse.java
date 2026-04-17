@@ -2,6 +2,8 @@ package com.lettr.services.emails.model;
 
 import com.google.gson.annotations.SerializedName;
 
+import javax.annotation.Nonnull;
+
 /**
  * Response returned after successfully queuing an email for delivery.
  */
@@ -13,27 +15,15 @@ public class CreateEmailResponse {
     private int accepted;
     private int rejected;
 
-    /**
-     * Returns the unique request ID for this email transmission.
-     * Use this ID to retrieve the email status later.
-     */
-    public String getRequestId() {
-        return requestId;
-    }
+    /** Unique identifier for this email transmission. Use it to retrieve the email status later. */
+    @Nonnull
+    public String getRequestId() { return requestId; }
 
-    /**
-     * Returns the number of accepted recipients.
-     */
-    public int getAccepted() {
-        return accepted;
-    }
+    /** Number of recipients accepted for delivery. */
+    public int getAccepted() { return accepted; }
 
-    /**
-     * Returns the number of rejected recipients.
-     */
-    public int getRejected() {
-        return rejected;
-    }
+    /** Number of recipients rejected. */
+    public int getRejected() { return rejected; }
 
     @Override
     public String toString() {

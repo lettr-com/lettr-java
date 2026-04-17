@@ -6,35 +6,21 @@ import com.lettr.services.domains.model.CreateDomainOptions;
 import com.lettr.services.domains.model.CreateDomainResponse;
 import com.lettr.services.domains.model.Domain;
 import com.lettr.services.domains.model.ListDomainsResponse;
+import com.lettr.services.domains.model.VerifyDomainResponse;
+
+import javax.annotation.Nonnull;
 
 /**
  * Service for managing sending domains via the Lettr API.
- *
- * <p>Example:</p>
- * <pre>{@code
- * Lettr lettr = new Lettr("your-api-key");
- *
- * // List all domains
- * ListDomainsResponse domains = lettr.domains().list();
- *
- * // Create a new domain
- * CreateDomainResponse response = lettr.domains().create(
- *     CreateDomainOptions.of("example.com")
- * );
- * }</pre>
  */
 public class Domains extends BaseService {
 
-    public Domains(String apiKey) {
+    public Domains(@Nonnull String apiKey) {
         super(apiKey);
     }
 
-    /**
-     * List all sending domains.
-     *
-     * @return response containing list of domains
-     * @throws LettrException if the request fails
-     */
+    /** List all sending domains. */
+    @Nonnull
     public ListDomainsResponse list() throws LettrException {
         return httpClient.get("/domains", null, ListDomainsResponse.class);
     }
@@ -43,37 +29,44 @@ public class Domains extends BaseService {
      * Get details of a specific domain.
      *
      * @param domain the domain name (e.g. "example.com")
-     * @return domain details including DNS records
-     * @throws LettrException if the request fails
+     * @throws IllegalArgumentException if {@code domain} is null or empty
      */
-    public Domain get(String domain) throws LettrException {
+    @Nonnull
+    public Domain get(@Nonnull String domain) throws LettrException {
         if (domain == null || domain.isEmpty()) {
             throw new IllegalArgumentException("domain is required");
         }
         return httpClient.get("/domains/" + domain, null, Domain.class);
     }
 
-    /**
-     * Create a new sending domain.
-     *
-     * @param options domain creation options
-     * @return response containing the domain and DKIM configuration
-     * @throws LettrException if the request fails
-     */
-    public CreateDomainResponse create(CreateDomainOptions options) throws LettrException {
+    /** Create a new sending domain. */
+    @Nonnull
+    public CreateDomainResponse create(@Nonnull CreateDomainOptions options) throws LettrException {
         return httpClient.post("/domains", options, CreateDomainResponse.class);
     }
 
     /**
      * Delete a sending domain.
      *
-     * @param domain the domain name to delete
-     * @throws LettrException if the request fails
+     * @throws IllegalArgumentException if {@code domain} is null or empty
      */
-    public void delete(String domain) throws LettrException {
+    public void delete(@Nonnull String domain) throws LettrException {
         if (domain == null || domain.isEmpty()) {
             throw new IllegalArgumentException("domain is required");
         }
         httpClient.delete("/domains/" + domain);
+    }
+
+    /**
+     * Verify a domain's DNS configuration (DKIM, CNAME, DMARC, SPF).
+     *
+     * @throws IllegalArgumentException if {@code domain} is null or empty
+     */
+    @Nonnull
+    public VerifyDomainResponse verify(@Nonnull String domain) throws LettrException {
+        if (domain == null || domain.isEmpty()) {
+            throw new IllegalArgumentException("domain is required");
+        }
+        return httpClient.post("/domains/" + domain + "/verify", null, VerifyDomainResponse.class);
     }
 }

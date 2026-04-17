@@ -2,8 +2,10 @@ package com.lettr.services.templates.model;
 
 import com.google.gson.annotations.SerializedName;
 
+import javax.annotation.Nonnull;
+
 /**
- * Represents an email template.
+ * Represents an email template (list view).
  */
 public class Template {
 
@@ -11,32 +13,21 @@ public class Template {
     private String name;
     private String slug;
 
-    @SerializedName("project_id")
-    private int projectId;
-
-    @SerializedName("folder_id")
-    private Integer folderId;
-
-    @SerializedName("created_at")
-    private String createdAt;
-
-    @SerializedName("updated_at")
-    private String updatedAt;
+    @SerializedName("project_id") private int projectId;
+    @SerializedName("folder_id")  private Integer folderId;
+    @SerializedName("created_at") private String createdAt;
+    @SerializedName("updated_at") private String updatedAt;
 
     public int getId() { return id; }
-    public String getName() { return name; }
-    public String getSlug() { return slug; }
+    @Nonnull public String getName() { return name; }
+    @Nonnull public String getSlug() { return slug; }
     public int getProjectId() { return projectId; }
-    public Integer getFolderId() { return folderId; }
-    public String getCreatedAt() { return createdAt; }
-    public String getUpdatedAt() { return updatedAt; }
+    @Nonnull public Integer getFolderId() { return folderId; }
+    @Nonnull public String getCreatedAt() { return createdAt; }
+    @Nonnull public String getUpdatedAt() { return updatedAt; }
 
     @Override
     public String toString() {
-        return "Template{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", slug='" + slug + '\'' +
-                '}';
+        return "Template{id=" + id + ", name='" + name + "', slug='" + slug + "'}";
     }
 }

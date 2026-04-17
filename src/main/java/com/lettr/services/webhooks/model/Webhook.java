@@ -1,6 +1,9 @@
 package com.lettr.services.webhooks.model;
 
 import com.google.gson.annotations.SerializedName;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -31,24 +34,24 @@ public class Webhook {
     @SerializedName("last_status")
     private String lastStatus;
 
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public String getUrl() { return url; }
+    @Nonnull public String getId() { return id; }
+    @Nonnull public String getName() { return name; }
+    @Nonnull public String getUrl() { return url; }
     public boolean isEnabled() { return enabled; }
-    public List<String> getEventTypes() { return eventTypes; }
-    public String getAuthType() { return authType; }
+    /** Specific event types the webhook receives, or null if subscribed to all events. */
+    @Nullable public List<String> getEventTypes() { return eventTypes; }
+    /** {@code none}, {@code basic}, or {@code oauth2}. */
+    @Nonnull public String getAuthType() { return authType; }
     public boolean isHasAuthCredentials() { return hasAuthCredentials; }
-    public String getLastSuccessfulAt() { return lastSuccessfulAt; }
-    public String getLastFailureAt() { return lastFailureAt; }
-    public String getLastStatus() { return lastStatus; }
+    /** Timestamp of the last successful webhook delivery, or null if there has been none. */
+    @Nullable public String getLastSuccessfulAt() { return lastSuccessfulAt; }
+    /** Timestamp of the last failed webhook delivery, or null if there has been none. */
+    @Nullable public String getLastFailureAt() { return lastFailureAt; }
+    /** {@code success}, {@code failure}, or null if there has been no delivery yet. */
+    @Nullable public String getLastStatus() { return lastStatus; }
 
     @Override
     public String toString() {
-        return "Webhook{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", url='" + url + '\'' +
-                ", enabled=" + enabled +
-                '}';
+        return "Webhook{id='" + id + "', name='" + name + "', enabled=" + enabled + '}';
     }
 }

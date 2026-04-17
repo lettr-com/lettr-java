@@ -27,7 +27,7 @@ import java.util.Map;
 public class HttpClient {
 
     private static final String BASE_URL = "https://app.lettr.com/api";
-    private static final String USER_AGENT = "lettr-java/0.1.0";
+    private static final String USER_AGENT = "lettr-java/0.2.0";
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
 
     private final String apiKey;
@@ -97,13 +97,51 @@ public class HttpClient {
     }
 
     /**
+     * Perform a PUT request with a JSON body.
+     *
+     * @param path         API path (e.g. "/webhooks/abc123")
+     * @param body         request body object (will be serialized to JSON)
+     * @param responseType the type to deserialize the "data" field into
+     * @param <T>          response data type
+     * @return deserialized response data
+     * @throws LettrException on error
+     */
+    public <T> T put(String path, Object body, Type responseType) throws LettrException {
+        String url = buildUrl(path, null);
+        String jsonBody = gson.toJson(body);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(DEFAULT_TIMEOUT)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("User-Agent", USER_AGENT)
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        return execute(request, responseType);
+    }
+
+    /**
      * Perform a DELETE request.
      *
      * @param path API path (e.g. "/domains/example.com")
      * @throws LettrException on error
      */
     public void delete(String path) throws LettrException {
-        String url = buildUrl(path, null);
+        delete(path, null);
+    }
+
+    /**
+     * Perform a DELETE request with optional query parameters.
+     *
+     * @param path        API path
+     * @param queryParams optional query parameters
+     * @throws LettrException on error
+     */
+    public void delete(String path, Map<String, String> queryParams) throws LettrException {
+        String url = buildUrl(path, queryParams);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
