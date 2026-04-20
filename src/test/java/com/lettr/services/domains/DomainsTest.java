@@ -69,11 +69,20 @@ class DomainsTest {
     void listDomainsResponseDeserializes() {
         String json = "{\"domains\":[{\"domain\":\"example.com\",\"status\":\"approved\"," +
                 "\"status_label\":\"Approved\",\"can_send\":true," +
+                "\"cname_status\":\"valid\",\"dkim_status\":\"valid\"," +
                 "\"created_at\":\"2024-01-15T10:30:00+00:00\",\"updated_at\":\"2024-01-16T14:45:00+00:00\"}]}";
 
         ListDomainsResponse response = gson.fromJson(json, ListDomainsResponse.class);
         assertEquals(1, response.getDomains().size());
-        assertEquals("example.com", response.getDomains().get(0).getDomain());
+        DomainListItem item = response.getDomains().get(0);
+        assertEquals("example.com", item.getDomain());
+        assertEquals("approved", item.getStatus());
+        assertEquals("Approved", item.getStatusLabel());
+        assertTrue(item.isCanSend());
+        assertEquals("valid", item.getCnameStatus());
+        assertEquals("valid", item.getDkimStatus());
+        assertEquals("2024-01-15T10:30:00+00:00", item.getCreatedAt());
+        assertEquals("2024-01-16T14:45:00+00:00", item.getUpdatedAt());
     }
 
     @Test

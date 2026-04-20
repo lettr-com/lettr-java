@@ -8,10 +8,10 @@ import java.util.List;
  */
 public class ListDomainsResponse {
 
-    private List<Domain> domains;
+    private List<DomainListItem> domains;
 
     /** Returns the list of registered sending domains. */
-    @Nonnull public List<Domain> getDomains() { return domains; }
+    @Nonnull public List<DomainListItem> getDomains() { return domains; }
 
     @Override
     public String toString() {
