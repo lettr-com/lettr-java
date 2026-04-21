@@ -27,7 +27,7 @@ import java.util.Map;
 public class HttpClient {
 
     private static final String BASE_URL = "https://app.lettr.com/api";
-    private static final String USER_AGENT = "lettr-java/0.3.0";
+    private static final String USER_AGENT = "lettr-java/1.0.0";
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
 
     private final String apiKey;
