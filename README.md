@@ -7,7 +7,7 @@ The official Java SDK for the [Lettr](https://lettr.com) Email API. Send transac
 ### Gradle
 
 ```groovy
-implementation 'com.lettr:lettr-java:0.2.0'
+implementation 'com.lettr:lettr-java:0.3.0'
 ```
 
 ### Maven
@@ -16,7 +16,7 @@ implementation 'com.lettr:lettr-java:0.2.0'
 <dependency>
     <groupId>com.lettr</groupId>
     <artifactId>lettr-java</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
