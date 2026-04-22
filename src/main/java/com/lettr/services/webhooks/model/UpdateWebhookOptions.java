@@ -13,7 +13,7 @@ import java.util.List;
 public class UpdateWebhookOptions {
 
     private final String name;
-    private final String target;
+    private final String url;
 
     @SerializedName("auth_type")           private final String authType;
     @SerializedName("auth_username")       private final String authUsername;
@@ -27,7 +27,7 @@ public class UpdateWebhookOptions {
 
     private UpdateWebhookOptions(Builder builder) {
         this.name = builder.name;
-        this.target = builder.target;
+        this.url = builder.url;
         this.authType = builder.authType;
         this.authUsername = builder.authUsername;
         this.authPassword = builder.authPassword;
@@ -44,7 +44,10 @@ public class UpdateWebhookOptions {
     }
 
     @Nullable public String getName() { return name; }
-    @Nullable public String getTarget() { return target; }
+    @Nullable public String getUrl() { return url; }
+    /** @deprecated use {@link #getUrl()} — the API field was renamed from {@code target} to {@code url}. */
+    @Deprecated
+    @Nullable public String getTarget() { return url; }
     @Nullable public String getAuthType() { return authType; }
     @Nullable public String getAuthUsername() { return authUsername; }
     @Nullable public String getAuthPassword() { return authPassword; }
@@ -56,7 +59,7 @@ public class UpdateWebhookOptions {
 
     public static class Builder {
         private String name;
-        private String target;
+        private String url;
         private String authType;
         private String authUsername;
         private String authPassword;
@@ -71,8 +74,14 @@ public class UpdateWebhookOptions {
         /** <b>(optional)</b> Sets the new webhook name. Max length: 255. */
         @Nonnull public Builder name(@Nullable String name) { this.name = name; return this; }
 
-        /** <b>(optional)</b> Sets the new webhook target URL. Max length: 2048. */
-        @Nonnull public Builder target(@Nullable String target) { this.target = target; return this; }
+        /** <b>(optional)</b> Sets the new webhook URL. Max length: 2048. */
+        @Nonnull public Builder url(@Nullable String url) { this.url = url; return this; }
+
+        /**
+         * @deprecated use {@link #url(String)} — the API field was renamed from {@code target} to {@code url}.
+         */
+        @Deprecated
+        @Nonnull public Builder target(@Nullable String target) { this.url = target; return this; }
 
         /** <b>(optional)</b> Sets the new authentication type. */
         @Nonnull public Builder authType(@Nullable String authType) { this.authType = authType; return this; }

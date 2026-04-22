@@ -66,7 +66,7 @@ class WebhooksTest {
                 .authUsername("user")
                 .authPassword("pass")
                 .eventsMode("selected")
-                .events(Arrays.asList("delivery", "bounce"))
+                .events(Arrays.asList("message.delivery", "message.bounce"))
                 .build();
 
         assertEquals("Test Webhook", options.getName());
@@ -108,7 +108,7 @@ class WebhooksTest {
     void updateWebhookOptionsBuildsWithAllFields() {
         UpdateWebhookOptions options = UpdateWebhookOptions.builder()
                 .name("Updated")
-                .target("https://new.example.com/webhook")
+                .url("https://new.example.com/webhook")
                 .authType("oauth2")
                 .oauthClientId("client-id")
                 .oauthClientSecret("secret")
@@ -118,9 +118,43 @@ class WebhooksTest {
                 .build();
 
         assertEquals("Updated", options.getName());
-        assertEquals("https://new.example.com/webhook", options.getTarget());
+        assertEquals("https://new.example.com/webhook", options.getUrl());
         assertEquals("oauth2", options.getAuthType());
         assertEquals(false, options.getActive());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void updateWebhookOptionsDeprecatedTargetStillWorks() {
+        UpdateWebhookOptions options = UpdateWebhookOptions.builder()
+                .target("https://legacy.example.com/webhook")
+                .build();
+
+        assertEquals("https://legacy.example.com/webhook", options.getUrl());
+        assertEquals("https://legacy.example.com/webhook", options.getTarget());
+    }
+
+    @Test
+    void updateWebhookOptionsSerializesUrlNotTarget() {
+        UpdateWebhookOptions options = UpdateWebhookOptions.builder()
+                .url("https://new.example.com/webhook")
+                .build();
+
+        String json = gson.toJson(options);
+        assertTrue(json.contains("\"url\""));
+        assertFalse(json.contains("\"target\""));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void updateWebhookOptionsDeprecatedTargetSerializesAsUrl() {
+        UpdateWebhookOptions options = UpdateWebhookOptions.builder()
+                .target("https://legacy.example.com/webhook")
+                .build();
+
+        String json = gson.toJson(options);
+        assertTrue(json.contains("\"url\""));
+        assertFalse(json.contains("\"target\""));
     }
 
     // --- Webhook deserialization ---

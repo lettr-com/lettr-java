@@ -297,7 +297,7 @@ Webhook webhook = lettr.webhooks().create(
         .authUsername("user")
         .authPassword("secret")
         .eventsMode("selected")
-        .events(List.of("delivery", "bounce"))
+        .events(List.of("message.delivery", "message.bounce"))
         .build()
 );
 System.out.println("Webhook ID: " + webhook.getId());
@@ -315,7 +315,7 @@ Webhook webhook = lettr.webhooks().get("webhook-abc123");
 Webhook updated = lettr.webhooks().update("webhook-abc123",
     UpdateWebhookOptions.builder()
         .name("Updated Webhook")
-        .target("https://new.example.com/webhook")
+        .url("https://new.example.com/webhook")
         .active(false)
         .build()
 );
