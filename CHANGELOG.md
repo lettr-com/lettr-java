@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-22
+
+### Added
+
+- `UpdateWebhookOptions.url()` — matches the renamed API field on `PUT /webhooks/{id}`
+
+### Changed
+
+- Webhook event types are now namespaced (e.g. `message.delivery`, `engagement.click`, `generation.generation_failure`). The server emits and accepts the namespaced form on both `POST` and `PUT`. Update any hard-coded event strings in `CreateWebhookOptions.events` / `UpdateWebhookOptions.events`.
+
+### Deprecated
+
+- `UpdateWebhookOptions.target()` / `getTarget()` — use `url()` / `getUrl()`. The builder still accepts `target` for source compatibility and serializes it as `url`, so existing callers keep working.
+
 ## [1.0.0] - 2026-04-21
 
 ### Added
@@ -57,6 +71,7 @@ Initial release.
 - Bearer token auth, Gson-based JSON serialization
 - Structured exceptions: `LettrException`, `LettrApiException`, `LettrValidationException`
 
+[1.1.0]: https://github.com/lettr/lettr-java/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lettr/lettr-java/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/lettr/lettr-java/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lettr/lettr-java/releases/tag/v0.1.0
