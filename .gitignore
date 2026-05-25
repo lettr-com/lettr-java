@@ -13,6 +13,7 @@ build/
 .project
 .classpath
 .cursor/
+bin/
 
 # OS
 .DS_Store
