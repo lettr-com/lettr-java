@@ -30,6 +30,12 @@ test {
     useJUnitPlatform()
 }
 
+processResources {
+    filesMatching('com/lettr/version.properties') {
+        expand(version: project.version)
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

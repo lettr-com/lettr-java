@@ -11,6 +11,7 @@ import com.lettr.core.exception.LettrException;
 import com.lettr.core.exception.LettrValidationException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpRequest;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Internal HTTP client for communicating with the Lettr API.
@@ -27,7 +29,8 @@ import java.util.Map;
 public class HttpClient {
 
     private static final String BASE_URL = "https://app.lettr.com/api";
-    private static final String USER_AGENT = "lettr-java/1.2.0";
+    private static final String SDK_VERSION = loadVersion();
+    private static final String USER_AGENT = "lettr-java/" + SDK_VERSION;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
 
     private final String apiKey;
@@ -91,6 +94,32 @@ public class HttpClient {
                 .header("Accept", "application/json")
                 .header("User-Agent", USER_AGENT)
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        return execute(request, responseType);
+    }
+
+    /**
+     * Perform a POST request with no body, returning a deserialized response.
+     * Used by endpoints whose only input is the path parameter (e.g.
+     * {@code /campaigns/{id}/send}).
+     *
+     * @param path         API path
+     * @param responseType the type to deserialize the "data" field into
+     * @param <T>          response data type
+     * @return deserialized response data
+     * @throws LettrException on error
+     */
+    public <T> T post(String path, Type responseType) throws LettrException {
+        String url = buildUrl(path, null);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(DEFAULT_TIMEOUT)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Accept", "application/json")
+                .header("User-Agent", USER_AGENT)
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
         return execute(request, responseType);
@@ -235,6 +264,23 @@ public class HttpClient {
         return execute(request, responseType);
     }
 
+    /**
+     * Percent-encode a single URL path segment so callers can safely interpolate
+     * arbitrary identifiers ({@code /campaigns/" + encodePathSegment(id)}).
+     * Encodes reserved characters including {@code /}, {@code ?}, {@code #},
+     * and spaces; produces RFC 3986-compatible output.
+     */
+    public static String encodePathSegment(String segment) {
+        if (segment == null) {
+            return "";
+        }
+        // URLEncoder is form-encoded ('+' for space, '*' un-encoded); fix to RFC 3986.
+        return java.net.URLEncoder.encode(segment, java.nio.charset.StandardCharsets.UTF_8)
+                .replace("+", "%20")
+                .replace("*", "%2A")
+                .replace("%7E", "~");
+    }
+
     private void executeNoResponse(HttpRequest request) throws LettrException {
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -353,5 +399,23 @@ public class HttpClient {
      */
     public Gson getGson() {
         return gson;
+    }
+
+    private static String loadVersion() {
+        try (InputStream in = HttpClient.class.getResourceAsStream("/com/lettr/version.properties")) {
+            if (in == null) {
+                return "unknown";
+            }
+            Properties props = new Properties();
+            props.load(in);
+            String v = props.getProperty("version");
+            // Guard against unprocessed templates: "@version@", "${version}", or empty.
+            if (v == null || v.isEmpty() || v.startsWith("@") || v.contains("${")) {
+                return "unknown";
+            }
+            return v;
+        } catch (IOException e) {
+            return "unknown";
+        }
     }
 }

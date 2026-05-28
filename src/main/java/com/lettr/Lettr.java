@@ -1,6 +1,7 @@
 package com.lettr;
 
 import com.lettr.services.audience.Audience;
+import com.lettr.services.campaigns.Campaigns;
 import com.lettr.services.domains.Domains;
 import com.lettr.services.emails.Emails;
 import com.lettr.services.projects.Projects;
@@ -67,4 +68,7 @@ public class Lettr {
 
     /** Returns the Audience namespace for managing lists, contacts, topics, properties, and segments. */
     @Nonnull public Audience audience() { return new Audience(apiKey); }
+
+    /** Returns the Campaigns service for listing, sending, and scheduling campaigns. */
+    @Nonnull public Campaigns campaigns() { return new Campaigns(apiKey); }
 }

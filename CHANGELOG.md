@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-28
+
+### Added
+
+- **Campaigns** service covering six endpoints, reached via `lettr.campaigns()`:
+  - `list()` / `list(ListCampaignsParams)` — paginated list with optional `status` filter (`GET /campaigns`)
+  - `get(id)` — single campaign with rendered `htmlContent` (`GET /campaigns/{id}`)
+  - `listEvents(id)` / `listEvents(id, ListCampaignEventsParams)` — cursor-paginated engagement events (`GET /campaigns/{id}/events`)
+  - `send(id)` — dispatch a draft now (`POST /campaigns/{id}/send`)
+  - `schedule(id, ScheduleCampaignOptions)` — schedule or reschedule (`POST /campaigns/{id}/schedule`)
+  - `unschedule(id)` — cancel a scheduled send (`POST /campaigns/{id}/unschedule`)
+- `CampaignStatus` and `CampaignEventType` enums (with `getValue()` for query building), plus `CampaignView`, `CampaignStats`, `CampaignEvent`, and `CampaignPagination` models
+- Unit tests covering campaign Gson deserialization, enum round-tripping, query-param building, and argument validation
+
+### Changed
+
+- `HttpClient.post(String path, Type responseType)` — new no-body overload, used by `Campaigns.send` / `unschedule` instead of passing a dummy empty map
+- `HttpClient.encodePathSegment(String)` — percent-encodes path segments so callers can safely interpolate arbitrary identifiers; adopted by `Campaigns` (id-taking methods) and `Emails.get` / `getScheduled` / `cancelScheduled`
+- `USER_AGENT` now reads the SDK version from a generated `com/lettr/version.properties` resource (templated by Gradle from `gradle.properties`) instead of a hardcoded string — single source of truth across releases
+- `OffsetPagination` (`com.lettr.core.model`) — shared pagination shape for new code; `ListCampaignsResponse` uses it. `AudiencePagination` is unchanged and remains the return type of the audience list responses (both classes have identical shape)
+- `PageParams` (`com.lettr.core.model`) — shared listing parameters for new code; `ListCampaignsParams` composes it. `com.lettr.services.audience.model.PageParams` is unchanged and continues to work for existing audience usage (both classes are behaviourally identical)
+- `WireValues.of(Enum)` (`com.lettr.core.util`) reads `@SerializedName` reflectively for URL query building, so enums declare each wire value exactly once
+- `Args.requireNonEmpty(name, value)` / `Args.requireNonNull(name, value)` (`com.lettr.core.util`) — shared validators; adopted by `Campaigns` and `ScheduleCampaignOptions`
+- `getCampaigns()` / `getEvents()` (and the audience list responses) defensively return `Collections.emptyList()` when the API omits the list field, so `@Nonnull` getters never return null
+
+### Notes
+
+- `CampaignView.htmlContent` is only populated by `get(...)`; it is `null` on list, send, schedule, and unschedule responses
+- Campaign events use cursor pagination — keep requesting with `getNextCursor()` until it is `null`; a filtered page may return an empty `events` list with a non-null cursor, meaning more pages remain
+
 ## [1.2.0] - 2026-05-25
 
 ### Added

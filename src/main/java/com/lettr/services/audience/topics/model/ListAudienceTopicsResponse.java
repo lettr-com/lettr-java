@@ -3,6 +3,7 @@ package com.lettr.services.audience.topics.model;
 import com.lettr.services.audience.model.AudiencePagination;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
 import java.util.List;
 
 public class ListAudienceTopicsResponse {
@@ -10,7 +11,7 @@ public class ListAudienceTopicsResponse {
     private List<AudienceTopicView> topics;
     private AudiencePagination pagination;
 
-    @Nonnull public List<AudienceTopicView> getTopics() { return topics; }
+    @Nonnull public List<AudienceTopicView> getTopics() { return topics != null ? topics : Collections.emptyList(); }
     @Nonnull public AudiencePagination getPagination() { return pagination; }
 
     @Override

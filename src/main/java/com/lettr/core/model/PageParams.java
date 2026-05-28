@@ -1,4 +1,4 @@
-package com.lettr.services.audience.model;
+package com.lettr.core.model;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -6,11 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Shared page/per_page parameters used by the audience listing endpoints.
- *
- * <p>Identical in behaviour to {@link com.lettr.core.model.PageParams}; both are
- * supported. New code may prefer the core type; existing imports of this class
- * continue to work unchanged.</p>
+ * Shared {@code page} / {@code per_page} parameters used by every listing
+ * endpoint that supports offset-based pagination. Composable into service-specific
+ * param classes that add further filters (see e.g. {@code ListCampaignsParams}).
  */
 public class PageParams {
 
@@ -25,6 +23,16 @@ public class PageParams {
     @Nonnull
     public static Builder builder() {
         return new Builder();
+    }
+
+    @Nullable
+    public Integer getPage() {
+        return page;
+    }
+
+    @Nullable
+    public Integer getPerPage() {
+        return perPage;
     }
 
     @Nonnull

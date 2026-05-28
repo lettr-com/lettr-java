@@ -1,15 +1,12 @@
-package com.lettr.services.audience.model;
+package com.lettr.core.model;
 
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Pagination metadata returned alongside paginated audience list responses.
- *
- * <p>Identical in shape to {@link com.lettr.core.model.OffsetPagination}; both
- * are supported. New code may prefer the core type; existing imports of this
- * class continue to work unchanged.</p>
+ * Offset-based pagination metadata returned alongside paginated list responses
+ * across the SDK (audience, campaigns, …).
  */
-public class AudiencePagination {
+public class OffsetPagination {
 
     private int total;
 
@@ -40,7 +37,7 @@ public class AudiencePagination {
 
     @Override
     public String toString() {
-        return "AudiencePagination{total=" + total
+        return "OffsetPagination{total=" + total
                 + ", perPage=" + perPage
                 + ", currentPage=" + currentPage
                 + ", lastPage=" + lastPage + '}';

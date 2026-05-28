@@ -1,6 +1,7 @@
 package com.lettr.services.emails;
 
 import com.lettr.core.exception.LettrException;
+import com.lettr.core.net.HttpClient;
 import com.lettr.services.BaseService;
 import com.lettr.services.emails.model.*;
 
@@ -100,7 +101,7 @@ public class Emails extends BaseService {
             if (from != null) params.put("from", from);
             if (to != null) params.put("to", to);
         }
-        return httpClient.get("/emails/" + requestId, params, GetEmailResponse.class);
+        return httpClient.get("/emails/" + HttpClient.encodePathSegment(requestId), params, GetEmailResponse.class);
     }
 
     /**
@@ -128,7 +129,7 @@ public class Emails extends BaseService {
         if (transmissionId == null || transmissionId.isEmpty()) {
             throw new IllegalArgumentException("transmissionId is required");
         }
-        return httpClient.get("/emails/scheduled/" + transmissionId, null, ScheduledEmail.class);
+        return httpClient.get("/emails/scheduled/" + HttpClient.encodePathSegment(transmissionId), null, ScheduledEmail.class);
     }
 
     /**
@@ -142,6 +143,6 @@ public class Emails extends BaseService {
         if (transmissionId == null || transmissionId.isEmpty()) {
             throw new IllegalArgumentException("transmissionId is required");
         }
-        httpClient.delete("/emails/scheduled/" + transmissionId);
+        httpClient.delete("/emails/scheduled/" + HttpClient.encodePathSegment(transmissionId));
     }
 }
