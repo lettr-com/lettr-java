@@ -1,5 +1,7 @@
 package com.lettr;
 
+import com.lettr.services.audience.Audience;
+import com.lettr.services.campaigns.Campaigns;
 import com.lettr.services.domains.Domains;
 import com.lettr.services.emails.Emails;
 import com.lettr.services.projects.Projects;
@@ -67,6 +69,20 @@ class LettrTest {
     }
 
     @Test
+    void audienceReturnsServiceInstance() {
+        Lettr lettr = new Lettr("test-api-key");
+        Audience audience = lettr.audience();
+        assertNotNull(audience);
+    }
+
+    @Test
+    void campaignsReturnsServiceInstance() {
+        Lettr lettr = new Lettr("test-api-key");
+        Campaigns campaigns = lettr.campaigns();
+        assertNotNull(campaigns);
+    }
+
+    @Test
     void servicesAreNewInstancesEachCall() {
         Lettr lettr = new Lettr("test-api-key");
         assertNotSame(lettr.emails(), lettr.emails());
@@ -75,5 +91,7 @@ class LettrTest {
         assertNotSame(lettr.templates(), lettr.templates());
         assertNotSame(lettr.projects(), lettr.projects());
         assertNotSame(lettr.system(), lettr.system());
+        assertNotSame(lettr.audience(), lettr.audience());
+        assertNotSame(lettr.campaigns(), lettr.campaigns());
     }
 }

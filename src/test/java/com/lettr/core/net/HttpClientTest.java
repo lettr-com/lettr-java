@@ -18,6 +18,28 @@ class HttpClientTest {
     }
 
     @Test
+    void encodePathSegmentEscapesReservedCharacters() {
+        // Reserved path characters must be percent-encoded so callers can safely
+        // interpolate arbitrary identifiers.
+        assertEquals("foo%2Fbar", HttpClient.encodePathSegment("foo/bar"));
+        assertEquals("foo%3Fbar", HttpClient.encodePathSegment("foo?bar"));
+        assertEquals("foo%23bar", HttpClient.encodePathSegment("foo#bar"));
+        assertEquals("hello%20world", HttpClient.encodePathSegment("hello world"));
+        assertEquals("100%25", HttpClient.encodePathSegment("100%"));
+    }
+
+    @Test
+    void encodePathSegmentLeavesUuidUnchanged() {
+        String uuid = "0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0";
+        assertEquals(uuid, HttpClient.encodePathSegment(uuid));
+    }
+
+    @Test
+    void encodePathSegmentHandlesNull() {
+        assertEquals("", HttpClient.encodePathSegment(null));
+    }
+
+    @Test
     void gsonInstanceAvailable() {
         HttpClient client = new HttpClient("test-key");
         Gson gson = client.getGson();

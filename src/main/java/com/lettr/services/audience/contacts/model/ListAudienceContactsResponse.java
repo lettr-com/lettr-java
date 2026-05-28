@@ -3,6 +3,7 @@ package com.lettr.services.audience.contacts.model;
 import com.lettr.services.audience.model.AudiencePagination;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
 import java.util.List;
 
 public class ListAudienceContactsResponse {
@@ -12,7 +13,7 @@ public class ListAudienceContactsResponse {
 
     @Nonnull
     public List<AudienceContactView> getContacts() {
-        return contacts;
+        return contacts != null ? contacts : Collections.emptyList();
     }
 
     @Nonnull

@@ -7,7 +7,7 @@ The official Java SDK for the [Lettr](https://lettr.com) Email API. Send transac
 ### Gradle
 
 ```groovy
-implementation 'com.lettr:lettr-java:1.2.0'
+implementation 'com.lettr:lettr-java:1.3.0'
 ```
 
 ### Maven
@@ -16,7 +16,7 @@ implementation 'com.lettr:lettr-java:1.2.0'
 <dependency>
     <groupId>com.lettr</groupId>
     <artifactId>lettr-java</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -423,6 +423,99 @@ GetTemplateHtmlResponse html = lettr.templates().getHtml(
 );
 System.out.println("Subject: " + html.getSubject());
 System.out.println("HTML: " + html.getHtml());
+```
+
+## Campaigns
+
+### List Campaigns
+
+```java
+import com.lettr.services.campaigns.model.*;
+
+// List with default pagination
+ListCampaignsResponse campaigns = lettr.campaigns().list();
+
+// List with filters
+ListCampaignsResponse drafts = lettr.campaigns().list(
+    ListCampaignsParams.builder()
+        .status(CampaignStatus.DRAFT)
+        .perPage(50)
+        .build()
+);
+
+for (CampaignView c : drafts.getCampaigns()) {
+    System.out.println(c.getName() + " - " + c.getStatus() + " (sent: " + c.getSentCount() + ")");
+}
+System.out.println("Page " + drafts.getPagination().getCurrentPage()
+        + " of " + drafts.getPagination().getLastPage());
+```
+
+### Get a Campaign
+
+```java
+CampaignView campaign = lettr.campaigns().get("0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0");
+
+System.out.println("Status: " + campaign.getStatus());
+System.out.println("HTML: " + campaign.getHtmlContent());   // only populated by get(...)
+
+CampaignStats stats = campaign.getStats();
+System.out.println("Opens: " + stats.getUniqueOpens() + " / Clicks: " + stats.getUniqueClicks());
+```
+
+### List Campaign Events
+
+Events use cursor-based pagination. Keep requesting with the returned cursor until
+it is `null`. A filtered page may come back with no events but a non-null cursor —
+that means more pages remain, so keep going.
+
+```java
+String cursor = null;
+do {
+    ListCampaignEventsResponse page = lettr.campaigns().listEvents(
+        campaign.getId(),
+        ListCampaignEventsParams.builder()
+            .eventType(CampaignEventType.CLICK)
+            .email("user@example.com")
+            .startDate("2026-05-01")
+            .limit(100)
+            .cursor(cursor)
+            .build()
+    );
+
+    for (CampaignEvent event : page.getEvents()) {
+        System.out.println(event.getEventType() + " at " + event.getTimestamp()
+                + " -> " + event.getTargetLinkUrl());
+    }
+
+    cursor = page.getNextCursor();
+} while (cursor != null);
+```
+
+### Send a Campaign
+
+```java
+// Immediately dispatches a draft; the campaign transitions to "preparing".
+CampaignView sending = lettr.campaigns().send(campaign.getId());
+System.out.println("Status: " + sending.getStatus());
+```
+
+### Schedule a Campaign
+
+```java
+// Schedule (or reschedule) for future delivery. Include a timezone offset.
+CampaignView scheduled = lettr.campaigns().schedule(
+    campaign.getId(),
+    ScheduleCampaignOptions.of("2026-06-01T09:00:00+00:00")
+);
+System.out.println("Scheduled for: " + scheduled.getScheduledAt());
+```
+
+### Unschedule a Campaign
+
+```java
+// Cancel a scheduled send, returning the campaign to "draft".
+CampaignView draft = lettr.campaigns().unschedule(campaign.getId());
+System.out.println("Status: " + draft.getStatus());
 ```
 
 ## System
