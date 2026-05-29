@@ -17,7 +17,7 @@ class CampaignsTest {
             .create();
 
     @Test
-    void campaignViewDeserializesWithStats() {
+    void campaignDetailDeserializesWithHtmlContentAndStats() {
         String json = "{"
                 + "\"id\":\"0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0\","
                 + "\"name\":\"Spring Newsletter\","
@@ -37,11 +37,13 @@ class CampaignsTest {
                 + "\"clicks\":120,\"unique_clicks\":90,\"unsubscribes\":5}"
                 + "}";
 
-        CampaignView c = gson.fromJson(json, CampaignView.class);
+        CampaignDetail c = gson.fromJson(json, CampaignDetail.class);
 
         assertEquals("0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0", c.getId());
         assertEquals("Spring Newsletter", c.getName());
+        assertEquals("Hello", c.getSubject());
         assertEquals("news@example.com", c.getFromEmail());
+        assertEquals("Example", c.getFromName());
         assertNull(c.getReplyTo());
         assertEquals(CampaignStatus.SENT, c.getStatus());
         assertEquals(Integer.valueOf(1000), c.getTotalRecipients());
@@ -57,7 +59,47 @@ class CampaignsTest {
     }
 
     @Test
-    void campaignViewWithoutHtmlContentLeavesItNull() {
+    void campaignViewDeserializesFromActionResponseShape() {
+        // Wire shape returned by list/send/schedule/unschedule — no html_content.
+        // Locks the base-class @SerializedName mappings so regressions surface
+        // even if the CampaignDetail subclass test still passes.
+        String json = "{"
+                + "\"id\":\"0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0\","
+                + "\"name\":\"Spring Newsletter\","
+                + "\"subject\":\"Hello\","
+                + "\"from_email\":\"news@example.com\","
+                + "\"from_name\":\"Example\","
+                + "\"reply_to\":\"replies@example.com\","
+                + "\"status\":\"scheduled\","
+                + "\"scheduled_at\":\"2026-06-01T09:00:00+00:00\","
+                + "\"total_recipients\":1000,"
+                + "\"sent_count\":0,"
+                + "\"sent_at\":null,"
+                + "\"created_at\":\"2026-05-19T08:00:00+00:00\","
+                + "\"stats\":{\"injections\":0,\"deliveries\":0,\"bounces\":0,"
+                + "\"spam_complaints\":0,\"opens\":0,\"unique_opens\":0,"
+                + "\"clicks\":0,\"unique_clicks\":0,\"unsubscribes\":0}"
+                + "}";
+
+        CampaignView c = gson.fromJson(json, CampaignView.class);
+
+        assertEquals("0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0", c.getId());
+        assertEquals("Spring Newsletter", c.getName());
+        assertEquals("Hello", c.getSubject());
+        assertEquals("news@example.com", c.getFromEmail());
+        assertEquals("Example", c.getFromName());
+        assertEquals("replies@example.com", c.getReplyTo());
+        assertEquals(CampaignStatus.SCHEDULED, c.getStatus());
+        assertEquals("2026-06-01T09:00:00+00:00", c.getScheduledAt());
+        assertEquals(Integer.valueOf(1000), c.getTotalRecipients());
+        assertEquals(0, c.getSentCount());
+        assertNull(c.getSentAt());
+        assertEquals("2026-05-19T08:00:00+00:00", c.getCreatedAt());
+        assertNotNull(c.getStats());
+    }
+
+    @Test
+    void campaignDetailWithoutHtmlContentLeavesItNull() {
         String json = "{\"id\":\"abc\",\"name\":\"Draft\",\"status\":\"draft\","
                 + "\"total_recipients\":null,\"sent_count\":0,"
                 + "\"created_at\":\"2026-05-19T08:00:00+00:00\","
@@ -65,7 +107,7 @@ class CampaignsTest {
                 + "\"spam_complaints\":0,\"opens\":0,\"unique_opens\":0,"
                 + "\"clicks\":0,\"unique_clicks\":0,\"unsubscribes\":0}}";
 
-        CampaignView c = gson.fromJson(json, CampaignView.class);
+        CampaignDetail c = gson.fromJson(json, CampaignDetail.class);
 
         assertEquals(CampaignStatus.DRAFT, c.getStatus());
         assertNull(c.getHtmlContent());

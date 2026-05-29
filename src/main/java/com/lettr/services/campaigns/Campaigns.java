@@ -40,17 +40,19 @@ public class Campaigns extends BaseService {
     }
 
     /**
-     * Retrieve a single campaign, including its rendered HTML content.
+     * Retrieve a single campaign. The returned {@link CampaignDetail} exposes
+     * the rendered HTML via {@link CampaignDetail#getHtmlContent()}, which may
+     * be {@code null} for drafts that have no rendered content yet.
      *
      * @param campaignId the campaign ID
-     * @return the campaign
+     * @return the campaign detail; {@code getHtmlContent()} may be {@code null} for drafts
      * @throws LettrException if the request fails
      * @throws IllegalArgumentException if {@code campaignId} is null or empty
      */
     @Nonnull
-    public CampaignView get(@Nonnull String campaignId) throws LettrException {
+    public CampaignDetail get(@Nonnull String campaignId) throws LettrException {
         Args.requireNonEmpty("campaignId", campaignId);
-        return httpClient.get("/campaigns/" + HttpClient.encodePathSegment(campaignId), null, CampaignView.class);
+        return httpClient.get("/campaigns/" + HttpClient.encodePathSegment(campaignId), null, CampaignDetail.class);
     }
 
     /**
