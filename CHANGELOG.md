@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-28
+
+### Added
+
+- `CampaignDetail` — detailed view of a campaign returned by `campaigns().get(id)`. Extends `CampaignView` and adds `getHtmlContent()`. `CampaignDetail` IS-A `CampaignView`, so callers that assign the `get()` result to a `CampaignView` variable keep working
+
+### Changed
+
+- `Campaigns.get(String)` return type narrowed from `CampaignView` to `CampaignDetail`. The rendered HTML is exposed via `CampaignDetail.getHtmlContent()`; existing `get(...).getHtmlContent()` callers are source-compatible
+- `CampaignView` no longer carries an `htmlContent` field. The API never populated it on list, send, schedule, or unschedule responses, so its presence on the base type was misleading — calls like `lettr.campaigns().send(id).getHtmlContent()` no longer compile (the branch was always dead anyway)
+
 ## [1.3.0] - 2026-05-28
 
 ### Added
@@ -123,6 +134,7 @@ Initial release.
 - Bearer token auth, Gson-based JSON serialization
 - Structured exceptions: `LettrException`, `LettrApiException`, `LettrValidationException`
 
+[1.4.0]: https://github.com/lettr/lettr-java/compare/v1.3.0...v1.4.0
 [1.1.0]: https://github.com/lettr/lettr-java/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lettr/lettr-java/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/lettr/lettr-java/compare/v0.1.0...v0.2.0

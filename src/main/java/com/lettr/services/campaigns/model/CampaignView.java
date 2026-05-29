@@ -6,10 +6,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Represents a single campaign as returned by the API, with embedded engagement
- * stats. The {@code htmlContent} field is only populated by
- * {@link com.lettr.services.campaigns.Campaigns#get(String)}; it is {@code null}
- * on list, send, schedule, and unschedule responses.
+ * Summary view of a campaign returned by list, send, schedule, and unschedule.
+ * Does not include the rendered HTML content; use {@link CampaignDetail}
+ * (returned by {@link com.lettr.services.campaigns.Campaigns#get(String)}) for that.
  */
 public class CampaignView {
 
@@ -42,9 +41,6 @@ public class CampaignView {
 
     @SerializedName("created_at")
     private String createdAt;
-
-    @SerializedName("html_content")
-    private String htmlContent;
 
     private CampaignStats stats;
 
@@ -105,12 +101,6 @@ public class CampaignView {
     @Nonnull
     public String getCreatedAt() {
         return createdAt;
-    }
-
-    /** Rendered HTML content. Only present on {@code get}; {@code null} otherwise. */
-    @Nullable
-    public String getHtmlContent() {
-        return htmlContent;
     }
 
     @Nonnull

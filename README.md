@@ -7,7 +7,7 @@ The official Java SDK for the [Lettr](https://lettr.com) Email API. Send transac
 ### Gradle
 
 ```groovy
-implementation 'com.lettr:lettr-java:1.3.0'
+implementation 'com.lettr:lettr-java:1.4.0'
 ```
 
 ### Maven
@@ -16,7 +16,7 @@ implementation 'com.lettr:lettr-java:1.3.0'
 <dependency>
     <groupId>com.lettr</groupId>
     <artifactId>lettr-java</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
@@ -452,11 +452,15 @@ System.out.println("Page " + drafts.getPagination().getCurrentPage()
 
 ### Get a Campaign
 
+`get()` returns `CampaignDetail`, which extends `CampaignView` and adds
+`htmlContent`. Action endpoints (`send`, `schedule`, `unschedule`) and `list()`
+return the base `CampaignView`, so they cannot accidentally expose HTML content.
+
 ```java
-CampaignView campaign = lettr.campaigns().get("0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0");
+CampaignDetail campaign = lettr.campaigns().get("0193e6a8-1f3a-7c2a-b9e2-1aa1d2e5d3f0");
 
 System.out.println("Status: " + campaign.getStatus());
-System.out.println("HTML: " + campaign.getHtmlContent());   // only populated by get(...)
+System.out.println("HTML: " + campaign.getHtmlContent());   // null for drafts with no rendered content yet
 
 CampaignStats stats = campaign.getStats();
 System.out.println("Opens: " + stats.getUniqueOpens() + " / Clicks: " + stats.getUniqueClicks());
