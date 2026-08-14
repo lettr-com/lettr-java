@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Covers the reworked bulk contact import (TPL-2105) and the duplicate-create fix. Everything here is additive — code written against 1.4.0 keeps compiling and sends the exact same payloads.
+
+### Added
+
+- **Per-contact bulk create.** `BulkCreateAudienceContactsOptions` supports a second request shape where each contact carries its own properties, lists and topic subscriptions, alongside the original flat `emails` list. Exactly one of the two must be filled in
+
+  ```java
+  BulkCreateAudienceContactsOptions.builder()
+      .contacts(List.of(
+          BulkAudienceContactRow.builder()
+              .email("cara@example.com")
+              .properties(Map.of("plan", "pro"))
+              .build(),
+          BulkAudienceContactRow.builder()
+              .email("dan@example.com")
+              .topic(AudienceTopicSubscription.optOut("01h-promos"))
+              .build()))
+      .listIds(List.of("01h-everyone"))
+      .updateExisting(true)
+      .build();
+  ```
+- `BulkAudienceContactRow` (builder: `email`, `properties`, `listIds`, `topics`/`topic`) and `AudienceTopicSubscription` (with the `optIn(id)` / `optOut(id)` constructors), plus the `AudienceTopicSubscriptionState` enum (`OPT_IN`, `OPT_OUT`)
+- `AudienceTopicSubscriptionState` says what a request should *do* with a topic and is deliberately separate from `AudienceTopicDefaultSubscription`, which describes how a topic behaves for a contact that says nothing. An `optOut` on a topic whose default is opt-out suppresses the auto-subscription in the same request instead of needing a second call
+- **Batch-wide `listIds` and `topics`,** plus `updateExisting`, on `BulkCreateAudienceContactsOptions`. Batch-wide lists and topics are unioned into every row; a row-level property key or opt-out wins over the batch-wide value. `updateExisting(true)` merges properties (submitted keys overwrite, absent keys are preserved) and allows dropping a subscription. It is only serialized when `true`, so a legacy payload stays byte-identical
+- **Bulk create now reports what happened per row.** `BulkCreateAudienceContactsResponse` gains `getUpdated()`, `getErrorCount()`, `getErrors()` (`BulkAudienceContactError` — `index`, `email`, `errorCode`, `error`) and `getContacts()` (`BulkAudienceContactRef` — `id`, `email`, `created`), plus `hasErrors()`, `getContactIds()` and `findIdFor(email)`. `getCreated()` and `getAlreadyExisted()` keep their exact meaning, and the collection getters never return `null`, so the response also reads a pre-TPL-2105 body
+
+  A bulk create can **partially succeed**: rows that fail validation are skipped and returned in `getErrors()` while the rest of the batch commits, and the call still returns HTTP 201. Check `hasErrors()` — a call that returns without throwing does not mean every row landed
+
+  Note that `getAlreadyExisted()` and `getUpdated()` overlap by design. They answer different questions ("was the address already in the audience?" vs "did this request change the contact?"), so they do not sum to the row count: a contact that already existed and got attached to a list is counted in both
+- `BulkAudienceContactErrorCode` enum (`missing_email`, `invalid_email`, `invalid_property_value`, `unknown_property_key`, `unknown_list`, `unknown_topic`, `invalid_topic_subscription`) with `fromWire(String)`. `BulkAudienceContactError.getErrorCode()` stays a raw `String` so a code added server-side survives; `getCode()` gives the typed form and returns `null` for an unknown code
+- **Bulk topic subscribe/unsubscribe** — 2 new methods on `audience().contacts()`, mirroring the existing `bulkAttachToLists` / `bulkDetachFromLists` pair:
+  - `bulkSubscribeToTopics(BulkContactTopicsOptions)` — `POST /audience/contacts/topics/bulk`, returns `BulkSubscribeContactsResponse` (`subscribed`, `alreadySubscribed`, `totalPairs`)
+  - `bulkUnsubscribeFromTopics(BulkContactTopicsOptions)` — `DELETE /audience/contacts/topics/bulk` with a request body, returns `BulkUnsubscribeContactsResponse` (`unsubscribed`, `totalPairs`). Pairs that do not exist are ignored
+
+  Both process every `contactIds` × `topicIds` combination (up to 1000 × 50). Feed them `getContactIds()` from a bulk create — no id lookup needed
+- `ContactAlreadyExistsException` — thrown by `audience().contacts().create()` when the email is already in the team's audience. It carries the colliding `getEmail()`. This is a client-correctable condition, **not** an outage: do not retry it; update the existing contact, or use `bulkCreate()` with `updateExisting(true)`
+
+### Changed
+
+- Creating a contact whose email already exists now throws `ContactAlreadyExistsException` (HTTP 409, `resource_already_exists`). The API previously let this escape as HTTP 500 with the misleading `send_error` code, which arrived as a plain `LettrApiException`. **If your retry policy retries 5xx, duplicate creates are no longer retried** — which was pointless anyway. Any error mapping or docs of yours that name `send_error` for this endpoint should be corrected. The exception extends `LettrApiException`, so existing `catch (LettrApiException)` / `catch (LettrException)` handlers catch it unchanged, and a 409 with any other error code stays a plain `LettrApiException`
+- `BulkCreateAudienceContactsOptions.getEmails()` is annotated `@Nullable` instead of `@Nonnull`, since it is now absent when the `contacts` shape is used. Source- and binary-compatible; only a static analyzer's view of it changes
+
 ## [1.4.0] - 2026-05-28
 
 ### Added

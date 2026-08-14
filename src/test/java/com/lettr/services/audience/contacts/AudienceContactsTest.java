@@ -2,6 +2,9 @@ package com.lettr.services.audience.contacts;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.lettr.core.exception.ContactAlreadyExistsException;
+import com.lettr.core.exception.LettrApiException;
+import com.lettr.core.exception.LettrException;
 import com.lettr.services.audience.contacts.model.*;
 import org.junit.jupiter.api.Test;
 
@@ -126,6 +129,187 @@ class AudienceContactsTest {
                 .emails(Arrays.asList("a@b.com", "c@d.com")).build());
     }
 
+    // --- TPL-2105: bulk contact import ---
+
+    @Test
+    void bulkCreateOptionsRequiresEitherEmailsOrContacts() {
+        assertThrows(IllegalArgumentException.class,
+                () -> BulkCreateAudienceContactsOptions.builder().listId("l1").build());
+
+        // Either shape on its own is enough.
+        assertNotNull(BulkCreateAudienceContactsOptions.builder()
+                .emails(Arrays.asList("a@b.com")).build());
+        assertNotNull(BulkCreateAudienceContactsOptions.builder()
+                .contacts(Arrays.asList(BulkAudienceContactRow.of("a@b.com"))).build());
+    }
+
+    @Test
+    void bulkCreateOptionsKeepsTheLegacyPayloadByteIdentical() {
+        // A pre-TPL-2105 call must serialize exactly as it did before: no
+        // "contacts" key, and no "update_existing" unless it was asked for.
+        String json = gson.toJson(BulkCreateAudienceContactsOptions.builder()
+                .emails(Arrays.asList("a@b.com", "c@d.com"))
+                .listId("l1")
+                .build());
+
+        assertEquals("{\"emails\":[\"a@b.com\",\"c@d.com\"],\"list_id\":\"l1\"}", json);
+    }
+
+    @Test
+    void bulkCreateOptionsSerializesPerContactRows() {
+        Map<String, String> rowProps = new LinkedHashMap<>();
+        rowProps.put("plan", "pro");
+
+        BulkCreateAudienceContactsOptions options = BulkCreateAudienceContactsOptions.builder()
+                .contacts(Arrays.asList(
+                        BulkAudienceContactRow.builder()
+                                .email("cara@example.com")
+                                .properties(rowProps)
+                                .listIds(Arrays.asList("l-vip"))
+                                .build(),
+                        // Row-level opt-out must beat the batch-wide opt-in below.
+                        BulkAudienceContactRow.builder()
+                                .email("dan@example.com")
+                                .topic(AudienceTopicSubscription.optOut("t-promos"))
+                                .build()))
+                .listIds(Arrays.asList("l-everyone"))
+                .topics(Arrays.asList(AudienceTopicSubscription.optIn("t-promos")))
+                .updateExisting(true)
+                .build();
+
+        String json = gson.toJson(options);
+
+        assertFalse(json.contains("\"emails\""), json);
+        assertTrue(json.contains("\"email\":\"cara@example.com\""), json);
+        assertTrue(json.contains("\"list_ids\":[\"l-vip\"]"), json);
+        assertTrue(json.contains("\"topics\":[{\"id\":\"t-promos\",\"subscription\":\"opt_out\"}]"), json);
+        assertTrue(json.contains("\"list_ids\":[\"l-everyone\"]"), json);
+        assertTrue(json.contains("\"subscription\":\"opt_in\""), json);
+        assertTrue(json.contains("\"update_existing\":true"), json);
+    }
+
+    @Test
+    void topicSubscriptionRejectsMissingId() {
+        assertThrows(IllegalArgumentException.class, () -> AudienceTopicSubscription.optIn(""));
+        assertThrows(IllegalArgumentException.class, () -> AudienceTopicSubscription.optOut(null));
+        assertEquals(AudienceTopicSubscriptionState.OPT_OUT,
+                AudienceTopicSubscription.optOut("t1").getSubscription());
+    }
+
+    @Test
+    void bulkCreateResponseDeserializesTheNewFields() {
+        String json = "{\"created\":2,\"already_existed\":1,\"updated\":1,\"error_count\":0,"
+                + "\"errors\":[],"
+                + "\"contacts\":[{\"id\":\"c1\",\"email\":\"Cara@example.com\",\"created\":true},"
+                + "{\"id\":\"c2\",\"email\":\"dan@example.com\",\"created\":false}]}";
+
+        BulkCreateAudienceContactsResponse response =
+                gson.fromJson(json, BulkCreateAudienceContactsResponse.class);
+
+        assertEquals(1, response.getUpdated());
+        assertEquals(0, response.getErrorCount());
+        assertFalse(response.hasErrors());
+        // Ids come back in submission order, so no follow-up lookup is needed.
+        assertEquals(Arrays.asList("c1", "c2"), response.getContactIds());
+        assertFalse(response.getContacts().get(1).isCreated());
+        // findIdFor is case-insensitive: the API normalizes addresses.
+        assertEquals("c1", response.findIdFor("  cara@EXAMPLE.com "));
+        assertNull(response.findIdFor("nobody@example.com"));
+    }
+
+    @Test
+    void bulkCreateResponseTreatsOmittedFieldsAsEmpty() {
+        // An API deployment older than TPL-2105 answers with just the two
+        // counters. hasErrors() and getContactIds() must still be usable.
+        BulkCreateAudienceContactsResponse response = gson.fromJson(
+                "{\"created\":2,\"already_existed\":1}", BulkCreateAudienceContactsResponse.class);
+
+        assertEquals(0, response.getUpdated());
+        assertFalse(response.hasErrors());
+        assertNotNull(response.getErrors());
+        assertTrue(response.getContactIds().isEmpty());
+    }
+
+    @Test
+    void bulkCreateResponseReportsSkippedRows() {
+        // Partial success: HTTP 201 with errors populated. Nothing throws, even
+        // though one row never landed — that is the trap this pins down.
+        String json = "{\"created\":1,\"already_existed\":0,\"updated\":0,\"error_count\":1,"
+                + "\"errors\":[{\"index\":1,\"email\":\"not-an-email\","
+                + "\"error_code\":\"invalid_email\",\"error\":\"The email address is not valid.\"}],"
+                + "\"contacts\":[{\"id\":\"c1\",\"email\":\"cara@example.com\",\"created\":true}]}";
+
+        BulkCreateAudienceContactsResponse response =
+                gson.fromJson(json, BulkCreateAudienceContactsResponse.class);
+
+        assertTrue(response.hasErrors());
+        assertEquals(1, response.getErrorCount());
+        assertEquals(1, response.getErrors().get(0).getIndex());
+        assertEquals(BulkAudienceContactErrorCode.INVALID_EMAIL, response.getErrors().get(0).getCode());
+        assertEquals(1, response.getContacts().size());
+    }
+
+    @Test
+    void bulkContactErrorSurvivesAnUnknownCode() {
+        // A code added server-side must stay readable rather than failing to parse.
+        String json = "{\"created\":0,\"already_existed\":0,\"error_count\":1,"
+                + "\"errors\":[{\"index\":0,\"email\":null,"
+                + "\"error_code\":\"some_future_code\",\"error\":\"Nope.\"}]}";
+
+        BulkCreateAudienceContactsResponse response =
+                gson.fromJson(json, BulkCreateAudienceContactsResponse.class);
+
+        assertEquals("some_future_code", response.getErrors().get(0).getErrorCode());
+        assertNull(response.getErrors().get(0).getCode());
+        assertNull(response.getErrors().get(0).getEmail());
+    }
+
+    @Test
+    void bulkContactTopicsOptionsValidatesBounds() {
+        assertThrows(IllegalArgumentException.class,
+                () -> BulkContactTopicsOptions.of(Collections.emptyList(), Arrays.asList("t1")));
+        assertThrows(IllegalArgumentException.class,
+                () -> BulkContactTopicsOptions.of(Arrays.asList("c1"), Collections.emptyList()));
+
+        BulkContactTopicsOptions options = BulkContactTopicsOptions.of(
+                Arrays.asList("c1", "c2"), Arrays.asList("t1", "t2"));
+        assertEquals("{\"contact_ids\":[\"c1\",\"c2\"],\"topic_ids\":[\"t1\",\"t2\"]}",
+                gson.toJson(options));
+    }
+
+    @Test
+    void bulkTopicResponsesDeserialize() {
+        BulkSubscribeContactsResponse subscribed = gson.fromJson(
+                "{\"subscribed\":3,\"already_subscribed\":1,\"total_pairs\":4}",
+                BulkSubscribeContactsResponse.class);
+        // 2 contacts × 2 topics — the endpoint works over the cartesian product.
+        assertEquals(3, subscribed.getSubscribed());
+        assertEquals(1, subscribed.getAlreadySubscribed());
+        assertEquals(4, subscribed.getTotalPairs());
+
+        BulkUnsubscribeContactsResponse unsubscribed = gson.fromJson(
+                "{\"unsubscribed\":2,\"total_pairs\":4}",
+                BulkUnsubscribeContactsResponse.class);
+        // Pairs that did not exist are ignored, so this is below totalPairs.
+        assertEquals(2, unsubscribed.getUnsubscribed());
+        assertEquals(4, unsubscribed.getTotalPairs());
+    }
+
+    @Test
+    void contactAlreadyExistsExceptionIsAnApiException() {
+        // The 409 replaces a 500 send_error. Subclassing LettrApiException keeps
+        // pre-existing catch blocks working.
+        ContactAlreadyExistsException e = new ContactAlreadyExistsException(
+                "A contact with the email jane@example.com already exists.",
+                409, "resource_already_exists", "jane@example.com");
+
+        assertTrue(e instanceof LettrApiException);
+        assertTrue(e instanceof LettrException);
+        assertEquals(409, e.getStatusCode());
+        assertEquals("resource_already_exists", e.getErrorCode());
+        assertEquals("jane@example.com", e.getEmail());
+    }
+
     @Test
     void bulkContactListsOptionsValidatesBounds() {
         assertThrows(IllegalArgumentException.class,
@@ -190,5 +374,7 @@ class AudienceContactsTest {
         assertThrows(IllegalArgumentException.class, () -> svc.unsubscribeFromTopic(null, "t1"));
         assertThrows(IllegalArgumentException.class, () -> svc.bulkAttachToLists(null));
         assertThrows(IllegalArgumentException.class, () -> svc.bulkDetachFromLists(null));
+        assertThrows(IllegalArgumentException.class, () -> svc.bulkSubscribeToTopics(null));
+        assertThrows(IllegalArgumentException.class, () -> svc.bulkUnsubscribeFromTopics(null));
     }
 }
