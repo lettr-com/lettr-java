@@ -21,10 +21,14 @@ While on `0.x`, breaking changes may ship in minor versions. Once we cut `1.0.0`
    - Use the headings `Added` / `Changed` / `Deprecated` / `Removed` / `Fixed` / `Security`
    - Update the compare links at the bottom
 
-2. **Bump the version**
-   - Edit `VERSION=` in `gradle.properties`
-   - Edit the `User-Agent` constant in `src/main/java/com/lettr/core/net/HttpClient.java`
-   - Edit the install snippets in `README.md`
+2. **Bump the version** — two files:
+   - `gradle.properties` → `VERSION=X.Y.Z` (the source of truth)
+   - `README.md` → the Gradle and Maven install snippets
+
+   Do **not** hand-edit any version constant in Java source. `HttpClient`
+   reads the version at runtime from `com/lettr/version.properties`, which
+   `processResources` in `build.gradle` expands from `project.version` — so
+   the `User-Agent` header follows `gradle.properties` automatically.
 
 3. **Verify locally**
    ```bash
@@ -33,8 +37,8 @@ While on `0.x`, breaking changes may ship in minor versions. Once we cut `1.0.0`
 
 4. **Commit and push to `main`**
    ```bash
-   git add gradle.properties src/main/java/com/lettr/core/net/HttpClient.java README.md CHANGELOG.md
-   git commit -m "Release 0.2.0"
+   git add gradle.properties README.md CHANGELOG.md
+   git commit -m "chore(release): 0.2.0"
    git push origin main
    ```
 
