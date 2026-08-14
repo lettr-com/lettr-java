@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-14
+
 Covers the reworked bulk contact import (TPL-2105) and the duplicate-create fix. Everything here is additive — code written against 1.4.0 keeps compiling and sends the exact same payloads.
 
 ### Added
@@ -178,6 +180,7 @@ Initial release.
 - Bearer token auth, Gson-based JSON serialization
 - Structured exceptions: `LettrException`, `LettrApiException`, `LettrValidationException`
 
+[1.5.0]: https://github.com/lettr/lettr-java/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/lettr/lettr-java/compare/v1.3.0...v1.4.0
 [1.1.0]: https://github.com/lettr/lettr-java/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lettr/lettr-java/compare/v0.2.0...v1.0.0

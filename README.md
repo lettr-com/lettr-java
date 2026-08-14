@@ -7,7 +7,7 @@ The official Java SDK for the [Lettr](https://lettr.com) Email API. A typed, bui
 ### Gradle
 
 ```groovy
-implementation 'com.lettr:lettr-java:1.4.0'
+implementation 'com.lettr:lettr-java:1.5.0'
 ```
 
 ### Maven
@@ -16,7 +16,7 @@ implementation 'com.lettr:lettr-java:1.4.0'
 <dependency>
     <groupId>com.lettr</groupId>
     <artifactId>lettr-java</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
 </dependency>
 ```
 
