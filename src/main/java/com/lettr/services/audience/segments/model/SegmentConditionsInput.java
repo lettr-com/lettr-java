@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * Wrapper used as the {@code conditions} field on segment create/update requests.
- * The top-level groups are joined by OR; conditions within each group are joined by AND.
+ * The top-level groups are joined by AND; conditions within each group are joined by OR.
  */
 public class SegmentConditionsInput {
 

@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A group of conditions joined by AND. Multiple groups in a segment are joined by OR.
+ * A group of conditions joined by OR. Multiple groups in a segment are joined by AND.
  */
 public class SegmentConditionGroup {
 
