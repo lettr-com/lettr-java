@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-08-15
+
+### Fixed
+
+- Corrected the segment condition documentation on `SegmentConditionGroup` and `SegmentConditionsInput`: conditions **within a group** are joined by `OR`, and **groups** are joined by `AND` — i.e. `(A OR B) AND (C OR D)`. The previous Javadoc stated the inverse. No behaviour change — the API has always evaluated segments this way, and no code paths were touched. Worth a read if you built a segment against the old description, since it may target a wider or narrower audience than you intended.
+
 ## [1.5.0] - 2026-08-14
 
 Covers the reworked bulk contact import (TPL-2105) and the duplicate-create fix. Everything here is additive — code written against 1.4.0 keeps compiling and sends the exact same payloads.
@@ -180,6 +186,7 @@ Initial release.
 - Bearer token auth, Gson-based JSON serialization
 - Structured exceptions: `LettrException`, `LettrApiException`, `LettrValidationException`
 
+[1.5.1]: https://github.com/lettr/lettr-java/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/lettr/lettr-java/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/lettr/lettr-java/compare/v1.3.0...v1.4.0
 [1.1.0]: https://github.com/lettr/lettr-java/compare/v1.0.0...v1.1.0
