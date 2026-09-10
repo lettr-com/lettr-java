@@ -6,6 +6,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
+import com.lettr.core.exception.IdempotencyConflictException;
+import com.lettr.core.exception.IdempotencyInProgressException;
 import com.lettr.core.exception.LettrApiException;
 import com.lettr.core.exception.LettrException;
 import com.lettr.core.exception.LettrValidationException;
@@ -97,6 +99,70 @@ public class HttpClient {
                 .build();
 
         return execute(request, responseType);
+    }
+
+    /**
+     * Perform a POST request with a JSON body and extra request headers,
+     * returning both the deserialized data and the response headers.
+     *
+     * <p>Separate from {@link #post(String, Object, Type)} rather than an
+     * overload with nullable arguments, because only one endpoint needs it: the
+     * {@code Idempotency-Replayed} response header on a send. Returning the
+     * headers rather than storing them keeps concurrent calls from reading each
+     * other's.
+     *
+     * @param path          API path
+     * @param body          request body object
+     * @param responseType  the type to deserialize the "data" field into
+     * @param extraHeaders  headers merged over the defaults, or null
+     * @param <T>           response data type
+     * @return the deserialized data alongside the response headers
+     * @throws LettrException on error
+     */
+    public <T> ApiResponse<T> postWithHeaders(String path, Object body, Type responseType,
+                                              Map<String, String> extraHeaders) throws LettrException {
+        String url = buildUrl(path, null);
+        String jsonBody = gson.toJson(body);
+
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(DEFAULT_TIMEOUT)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("User-Agent", USER_AGENT);
+
+        if (extraHeaders != null) {
+            for (Map.Entry<String, String> entry : extraHeaders.entrySet()) {
+                builder.header(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return executeWithHeaders(
+                builder.POST(HttpRequest.BodyPublishers.ofString(jsonBody)).build(),
+                responseType);
+    }
+
+    /**
+     * A deserialized response together with the headers it arrived with.
+     *
+     * @param <T> the deserialized data type
+     */
+    public static final class ApiResponse<T> {
+        private final T data;
+        private final java.net.http.HttpHeaders headers;
+
+        ApiResponse(T data, java.net.http.HttpHeaders headers) {
+            this.data = data;
+            this.headers = headers;
+        }
+
+        public T getData() { return data; }
+
+        /** The first value of a response header, or null when absent. */
+        public String header(String name) {
+            return headers.firstValue(name).orElse(null);
+        }
     }
 
     /**
@@ -291,7 +357,7 @@ public class HttpClient {
             }
 
             if (statusCode >= 400) {
-                handleErrorResponse(statusCode, response.body());
+                handleErrorResponse(statusCode, response.body(), response.headers());
             }
         } catch (LettrException e) {
             throw e;
@@ -304,26 +370,30 @@ public class HttpClient {
     }
 
     private <T> T execute(HttpRequest request, Type responseType) throws LettrException {
+        return this.<T>executeWithHeaders(request, responseType).getData();
+    }
+
+    private <T> ApiResponse<T> executeWithHeaders(HttpRequest request, Type responseType) throws LettrException {
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             int statusCode = response.statusCode();
             String responseBody = response.body();
 
             if (statusCode >= 400) {
-                handleErrorResponse(statusCode, responseBody);
+                handleErrorResponse(statusCode, responseBody, response.headers());
             }
 
             if (responseBody == null || responseBody.isEmpty()) {
-                return null;
+                return new ApiResponse<>(null, response.headers());
             }
 
             JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
 
             if (json.has("data")) {
-                return gson.fromJson(json.get("data"), responseType);
+                return new ApiResponse<>(gson.fromJson(json.get("data"), responseType), response.headers());
             }
 
-            return gson.fromJson(responseBody, responseType);
+            return new ApiResponse<>(gson.fromJson(responseBody, responseType), response.headers());
         } catch (LettrException e) {
             throw e;
         } catch (IOException e) {
@@ -336,7 +406,8 @@ public class HttpClient {
         }
     }
 
-    private void handleErrorResponse(int statusCode, String responseBody) throws LettrException {
+    private void handleErrorResponse(int statusCode, String responseBody,
+                                     java.net.http.HttpHeaders headers) throws LettrException {
         if (responseBody == null || responseBody.isEmpty()) {
             throw new LettrApiException("API request failed with status " + statusCode, statusCode, null);
         }
@@ -362,11 +433,35 @@ public class HttpClient {
                 throw new LettrValidationException(message, errors);
             }
 
+            // The two idempotency conflicts need telling apart: one is safe to
+            // retry with the same key, the other will fail forever.
+            if (statusCode == 409 && "idempotency_in_progress".equals(errorCode)) {
+                throw new IdempotencyInProgressException(message, statusCode, errorCode, retryAfter(headers));
+            }
+
+            if (statusCode == 409 && "idempotency_key_conflict".equals(errorCode)) {
+                throw new IdempotencyConflictException(message, statusCode, errorCode);
+            }
+
             throw new LettrApiException(message, statusCode, errorCode);
         } catch (LettrException e) {
             throw e;
         } catch (Exception e) {
             throw new LettrApiException(responseBody, statusCode, null);
+        }
+    }
+
+    /** {@code Retry-After} in seconds, or null when absent or unparseable. */
+    private Integer retryAfter(java.net.http.HttpHeaders headers) {
+        if (headers == null) {
+            return null;
+        }
+
+        try {
+            int seconds = Integer.parseInt(headers.firstValue("Retry-After").orElse(""));
+            return seconds > 0 ? seconds : null;
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

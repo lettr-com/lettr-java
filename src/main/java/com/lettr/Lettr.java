@@ -4,6 +4,7 @@ import com.lettr.services.audience.Audience;
 import com.lettr.services.campaigns.Campaigns;
 import com.lettr.services.domains.Domains;
 import com.lettr.services.emails.Emails;
+import com.lettr.services.folders.Folders;
 import com.lettr.services.projects.Projects;
 import com.lettr.services.system.System;
 import com.lettr.services.templates.Templates;
@@ -62,6 +63,11 @@ public class Lettr {
 
     /** Returns the Projects service for listing projects. */
     @Nonnull public Projects projects() { return new Projects(apiKey); }
+
+    /**
+     * Returns the Folders service — where a usable {@code folderId} comes from.
+     */
+    @Nonnull public Folders folders() { return new Folders(apiKey); }
 
     /** Returns the System service for health checks and API key validation. */
     @Nonnull public System system() { return new System(apiKey); }

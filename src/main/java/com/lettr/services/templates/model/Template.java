@@ -15,6 +15,8 @@ public class Template {
 
     @SerializedName("project_id") private int projectId;
     @SerializedName("folder_id")  private Integer folderId;
+    private TemplatePurpose purpose;
+    @SerializedName("preparation_status") private TemplatePreparationStatus preparationStatus;
     @SerializedName("created_at") private String createdAt;
     @SerializedName("updated_at") private String updatedAt;
 
@@ -25,6 +27,30 @@ public class Template {
     @Nonnull public Integer getFolderId() { return folderId; }
     @Nonnull public String getCreatedAt() { return createdAt; }
     @Nonnull public String getUpdatedAt() { return updatedAt; }
+
+    /**
+     * Which module this template belongs to.
+     *
+     * <p>Defaults to {@link TemplatePurpose#TRANSACTIONAL} when the API omits
+     * the field - a deployment that predates it had no other kind.
+     */
+    @Nonnull
+    public TemplatePurpose getPurpose() {
+        return purpose != null ? purpose : TemplatePurpose.TRANSACTIONAL;
+    }
+
+    /**
+     * How far this template has got through preparation.
+     *
+     * <p>Defaults to {@link TemplatePreparationStatus#READY} when the API omits
+     * the field, because on a deployment that predates it every template with
+     * HTML was simply usable. Defaulting to {@code PENDING} would make an older
+     * API look like a stalled queue and hang anything waiting for readiness.
+     */
+    @Nonnull
+    public TemplatePreparationStatus getPreparationStatus() {
+        return preparationStatus != null ? preparationStatus : TemplatePreparationStatus.READY;
+    }
 
     @Override
     public String toString() {

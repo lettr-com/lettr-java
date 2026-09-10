@@ -1,24 +1,23 @@
-package com.lettr.services.templates.model;
+package com.lettr.services.folders.model;
+
+import com.lettr.services.templates.model.TemplatePurpose;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Parameters for listing templates with optional filtering and pagination.
- * All fields are optional.
+ * Parameters for listing folders. All fields are optional.
  */
-public class ListTemplatesParams {
+public class ListFoldersParams {
 
     private final Integer projectId;
-    private final Integer folderId;
     private final TemplatePurpose purpose;
     private final Integer perPage;
     private final Integer page;
 
-    private ListTemplatesParams(Builder builder) {
+    private ListFoldersParams(Builder builder) {
         this.projectId = builder.projectId;
-        this.folderId = builder.folderId;
         this.purpose = builder.purpose;
         this.perPage = builder.perPage;
         this.page = builder.page;
@@ -33,7 +32,6 @@ public class ListTemplatesParams {
     public Map<String, String> toQueryParams() {
         Map<String, String> params = new HashMap<>();
         if (projectId != null) params.put("project_id", projectId.toString());
-        if (folderId != null) params.put("folder_id", folderId.toString());
         if (purpose != null) params.put("purpose", purpose.wireValue());
         if (perPage != null) params.put("per_page", perPage.toString());
         if (page != null) params.put("page", page.toString());
@@ -42,28 +40,19 @@ public class ListTemplatesParams {
 
     public static class Builder {
         private Integer projectId;
-        private Integer folderId;
         private TemplatePurpose purpose;
         private Integer perPage;
         private Integer page;
 
         private Builder() {}
 
-        /** <b>(optional)</b> Filters templates by project ID. */
-        @Nonnull public Builder projectId(int projectId) { this.projectId = projectId; return this; }
-
         /**
-         * <b>(optional)</b> Narrows the list to one folder of the resolved project.
+         * <b>(optional)</b> The project to list folders from.
          *
-         * <p>Discover ids with {@code lettr.folders().list()}. One
-         * {@code perPage(100)} call reconciles a whole bulk import instead of a
-         * detail call per template, each of which drags the full HTML payload
-         * against the same rate limit.
-         *
-         * <p>A folder that is not in the resolved project is a 404, not an empty
-         * list, so a typo cannot be misread as "nothing is there yet".
+         * <p>Without one the team's default project is used, the same way
+         * {@code templates().list()} resolves it.
          */
-        @Nonnull public Builder folderId(int folderId) { this.folderId = folderId; return this; }
+        @Nonnull public Builder projectId(int projectId) { this.projectId = projectId; return this; }
 
         /** <b>(optional)</b> Narrows the list to one module. Both are returned if unset. */
         @Nonnull public Builder purpose(@Nonnull TemplatePurpose purpose) { this.purpose = purpose; return this; }
@@ -75,8 +64,8 @@ public class ListTemplatesParams {
         @Nonnull public Builder page(int page) { this.page = page; return this; }
 
         @Nonnull
-        public ListTemplatesParams build() {
-            return new ListTemplatesParams(this);
+        public ListFoldersParams build() {
+            return new ListFoldersParams(this);
         }
     }
 }

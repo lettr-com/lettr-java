@@ -277,4 +277,110 @@ class TemplatesTest {
         assertThrows(IllegalArgumentException.class, () -> templates.getMergeTags(null));
         assertThrows(IllegalArgumentException.class, () -> templates.getMergeTags(""));
     }
+
+    // ---------------------------------------------------------------------
+    // Purpose, preparation status and the folder filter (TPL-2543)
+    // ---------------------------------------------------------------------
+
+    @Test
+    void listTemplatesParamsSendsFolderAndPurpose() {
+        ListTemplatesParams params = ListTemplatesParams.builder()
+                .projectId(5)
+                .folderId(10)
+                .purpose(TemplatePurpose.CAMPAIGN)
+                .perPage(100)
+                .build();
+
+        Map<String, String> queryParams = params.toQueryParams();
+        assertEquals("5", queryParams.get("project_id"));
+        assertEquals("10", queryParams.get("folder_id"));
+        assertEquals("campaign", queryParams.get("purpose"));
+        assertEquals("100", queryParams.get("per_page"));
+    }
+
+    /** An existing caller's request is unchanged. */
+    @Test
+    void listTemplatesParamsOmitsTheNewFiltersWhenUnset() {
+        Map<String, String> queryParams = ListTemplatesParams.builder().projectId(5).build().toQueryParams();
+
+        assertEquals(1, queryParams.size());
+        assertFalse(queryParams.containsKey("folder_id"));
+        assertFalse(queryParams.containsKey("purpose"));
+    }
+
+    @Test
+    void templateDeserializesPurposeAndPreparationStatus() {
+        String json = "{\"id\":1,\"name\":\"Newsletter\",\"slug\":\"newsletter\"," +
+                "\"project_id\":5,\"folder_id\":11,\"purpose\":\"campaign\"," +
+                "\"preparation_status\":\"pending\"," +
+                "\"created_at\":\"2026-01-15T10:00:00+00:00\"," +
+                "\"updated_at\":\"2026-01-20T14:30:00+00:00\"}";
+
+        Template template = gson.fromJson(json, Template.class);
+
+        assertEquals(TemplatePurpose.CAMPAIGN, template.getPurpose());
+        assertEquals(TemplatePreparationStatus.PENDING, template.getPreparationStatus());
+        assertFalse(template.getPreparationStatus().isSettled());
+    }
+
+    /**
+     * An API deployment that predates the fields had every template with HTML
+     * simply usable, so READY is the honest default. PENDING would look like a
+     * stalled queue and hang anything waiting for readiness.
+     */
+    @Test
+    void templateWithoutTheNewFieldsDefaultsToTransactionalAndReady() {
+        String json = "{\"id\":1,\"name\":\"Legacy\",\"slug\":\"legacy\"," +
+                "\"project_id\":5,\"folder_id\":10," +
+                "\"created_at\":\"2026-01-15T10:00:00+00:00\"," +
+                "\"updated_at\":\"2026-01-20T14:30:00+00:00\"}";
+
+        Template template = gson.fromJson(json, Template.class);
+
+        assertEquals(TemplatePurpose.TRANSACTIONAL, template.getPurpose());
+        assertEquals(TemplatePreparationStatus.READY, template.getPreparationStatus());
+        assertTrue(template.getPreparationStatus().isSettled());
+    }
+
+    /**
+     * isSettled answers "is what I sent what will go out", not "can I send
+     * this" - after an update a pending template is still sendable.
+     */
+    @Test
+    void onlyReadyIsSettled() {
+        assertTrue(TemplatePreparationStatus.READY.isSettled());
+        assertFalse(TemplatePreparationStatus.PENDING.isSettled());
+        assertFalse(TemplatePreparationStatus.FAILED.isSettled());
+    }
+
+    @Test
+    void createTemplateOptionsSerializesPurposeOnlyWhenSet() {
+        String withPurpose = gson.toJson(CreateTemplateOptions.builder()
+                .name("October Newsletter")
+                .json("{}")
+                .purpose(TemplatePurpose.CAMPAIGN)
+                .build());
+
+        String withoutPurpose = gson.toJson(CreateTemplateOptions.builder()
+                .name("Welcome")
+                .html("<p>Hi</p>")
+                .build());
+
+        assertTrue(withPurpose.contains("\"purpose\":\"campaign\""));
+        assertFalse(withoutPurpose.contains("purpose"));
+    }
+
+    @Test
+    void createTemplateResponseDeserializesTheNewFields() {
+        String json = "{\"id\":10,\"name\":\"October Newsletter\",\"slug\":\"october-newsletter\"," +
+                "\"project_id\":5,\"folder_id\":11,\"purpose\":\"campaign\"," +
+                "\"preparation_status\":\"pending\",\"active_version\":1," +
+                "\"merge_tags\":[],\"created_at\":\"2026-01-15T10:00:00+00:00\"}";
+
+        CreateTemplateResponse response = gson.fromJson(json, CreateTemplateResponse.class);
+
+        assertEquals(TemplatePurpose.CAMPAIGN, response.getPurpose());
+        // A JSON import has no HTML until the background job renders it.
+        assertEquals(TemplatePreparationStatus.PENDING, response.getPreparationStatus());
+    }
 }

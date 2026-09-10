@@ -18,6 +18,7 @@ public class CreateTemplateOptions {
 
     @SerializedName("project_id") private final Integer projectId;
     @SerializedName("folder_id")  private final Integer folderId;
+    private final TemplatePurpose purpose;
 
     private CreateTemplateOptions(Builder builder) {
         this.name = builder.name;
@@ -25,6 +26,7 @@ public class CreateTemplateOptions {
         this.json = builder.json;
         this.projectId = builder.projectId;
         this.folderId = builder.folderId;
+        this.purpose = builder.purpose;
     }
 
     @Nonnull
@@ -37,6 +39,7 @@ public class CreateTemplateOptions {
     @Nullable public String getJson() { return json; }
     @Nullable public Integer getProjectId() { return projectId; }
     @Nullable public Integer getFolderId() { return folderId; }
+    @Nullable public TemplatePurpose getPurpose() { return purpose; }
 
     public static class Builder {
         private String name;
@@ -44,6 +47,7 @@ public class CreateTemplateOptions {
         private String json;
         private Integer projectId;
         private Integer folderId;
+        private TemplatePurpose purpose;
 
         private Builder() {}
 
@@ -67,6 +71,14 @@ public class CreateTemplateOptions {
 
         /** <b>(optional)</b> Sets the folder ID. Defaults to the first folder in the project. */
         @Nonnull public Builder folderId(int folderId) { this.folderId = folderId; return this; }
+
+        /**
+         * <b>(optional)</b> The module to create the template in.
+         *
+         * <p>Omit to let the API decide, which today means transactional. When
+         * set, {@code folderId} must belong to the same module.
+         */
+        @Nonnull public Builder purpose(@Nonnull TemplatePurpose purpose) { this.purpose = purpose; return this; }
 
         /**
          * @throws IllegalArgumentException if {@code name} is missing, neither {@code html} nor

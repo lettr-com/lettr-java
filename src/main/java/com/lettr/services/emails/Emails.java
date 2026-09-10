@@ -2,6 +2,8 @@ package com.lettr.services.emails;
 
 import com.lettr.core.exception.LettrException;
 import com.lettr.core.net.HttpClient;
+import com.lettr.core.util.IdempotencyKeys;
+import com.lettr.core.net.HttpClient;
 import com.lettr.services.BaseService;
 import com.lettr.services.emails.model.*;
 
@@ -29,6 +31,46 @@ public class Emails extends BaseService {
     @Nonnull
     public CreateEmailResponse send(@Nonnull CreateEmailOptions options) throws LettrException {
         return httpClient.post("/emails", options, CreateEmailResponse.class);
+    }
+
+    /**
+     * Send an email under an idempotency key.
+     *
+     * <p>Reuse the key when you retry and the API returns the original result
+     * instead of delivering a second email;
+     * {@link CreateEmailResponse#isReplayed()} says when that happened.
+     *
+     * <p><b>You choose the key; the SDK never generates one.</b> It only works
+     * if both attempts use the same value, and the SDK does not retry — one
+     * {@code send()} is one HTTP request — so the retry is yours, and only you
+     * know that two calls are the same logical send.
+     *
+     * @param options        the email to send
+     * @param idempotencyKey 1–255 characters of {@code [A-Za-z0-9._-]}
+     * @throws IllegalArgumentException if the key is malformed — thrown before
+     *                                  any request is made
+     * @throws com.lettr.core.exception.IdempotencyInProgressException if the
+     *         original send is still running; retry with the <b>same</b> key
+     * @throws com.lettr.core.exception.IdempotencyConflictException if the key
+     *         was used with a different payload; do not retry
+     * @throws LettrException if the request fails
+     */
+    @Nonnull
+    public CreateEmailResponse send(@Nonnull CreateEmailOptions options,
+                                    @Nonnull String idempotencyKey) throws LettrException {
+        // Checked here so a malformed key fails locally instead of costing a
+        // round trip and a 422.
+        IdempotencyKeys.validate(idempotencyKey);
+
+        HttpClient.ApiResponse<CreateEmailResponse> response = httpClient.postWithHeaders(
+                "/emails",
+                options,
+                CreateEmailResponse.class,
+                Map.of("Idempotency-Key", idempotencyKey));
+
+        CreateEmailResponse data = response.getData();
+        data.setReplayed("true".equalsIgnoreCase(response.header("Idempotency-Replayed")));
+        return data;
     }
 
     /**
