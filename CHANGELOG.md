@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-10
+
+Brings this client level with lettr-php: template modules, the folders endpoint, preparation status, and idempotent sends. Everything is additive - code written against 1.5.1 keeps compiling and sends identical requests.
+
+### Added
+
+- **`lettr.folders().list()`** - the folders templates are filed into, each with its `purpose` and `templatesCount`. This is what `CreateTemplateOptions.folderId()` was missing: nothing else returned a folder id, so a caller either omitted it and accepted whichever folder the API picked, or hardcoded an integer read out of an app URL. Read-only, because deleting a folder moves or deletes the templates inside it.
+- **`TemplatePurpose`** (`TRANSACTIONAL`, `CAMPAIGN`) on `CreateTemplateOptions`, on every template response, and as a `ListTemplatesParams` filter.
+- **`TemplatePreparationStatus`** (`PENDING`, `READY`, `FAILED`) on every template response, with `isSettled()`.
+
+  `isSettled()` rather than `isReady()` on purpose: it answers "is what I sent what will go out", which is not the same question as "can I send this". After an *update* the previous render stays in place, so a pending template is still sendable - it is serving the old content.
+
+  Both getters default when the API omits the field - `TRANSACTIONAL` and `READY` - because on a deployment that predates them every template with HTML was simply usable. Defaulting to `PENDING` would make an older API look like a stalled queue.
+- **`ListTemplatesParams.folderId()`** - one `perPage(100)` call reconciles a whole bulk import instead of a detail call per template, each dragging the full HTML payload against the same rate limit. A folder outside the resolved project is a 404, not an empty list, so a typo cannot be misread as "nothing is there yet".
+- **`emails().send(options, idempotencyKey)`** - a second overload, so existing single-argument calls are untouched. Reuse the key when you retry and the API returns the original result instead of delivering a second email; `CreateEmailResponse.isReplayed()` says when that happened.
+
+  You choose the key; the SDK never generates one. It only works if both attempts use the same value, and the SDK does not retry - one `send()` is one HTTP request - so the retry is yours. A malformed key throws `IllegalArgumentException` **before any request goes out**; `IdempotencyKeys.isValid()` is public for callers deriving keys from their own ids.
+- **`IdempotencyInProgressException`** and **`IdempotencyConflictException`**, both extending `LettrApiException` so existing handlers keep working. The first carries `getRetryAfter()` and must be retried with the *same* key; the second means that key was used with a different payload and will fail identically forever.
+
+### Notes
+
+- Keys are scoped per team **and** API key, so the same string through a different API key is a different key. The provider retains one for 24 hours.
+- `HttpClient` gained `postWithHeaders()` and a small `ApiResponse<T>` holder for the one place a response header carries meaning. The existing `post()` / `get()` / `put()` methods are unchanged.
+
 ## [1.5.1] - 2026-08-15
 
 ### Fixed
