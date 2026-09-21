@@ -2,12 +2,13 @@ package com.lettr.services.emails;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.lettr.core.util.WireValues;
 import com.lettr.services.emails.model.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -376,16 +377,148 @@ class EmailsTest {
 
     @Test
     void scheduledEmailDeserializes() {
-        String json = "{\"transmission_id\":\"123\",\"state\":\"submitted\"," +
-                "\"scheduled_at\":\"2024-01-16T10:00:00+00:00\"," +
-                "\"from\":\"sender@example.com\",\"subject\":\"Newsletter\"," +
-                "\"recipients\":[\"user@example.com\"],\"num_recipients\":1,\"events\":[]}";
+        String json = "{\"request_id\":\"sch_01M322YMWVCZ4RNYXHMSSMDTM1\",\"transmission_id\":null," +
+                "\"state\":\"scheduled\",\"scheduled_at\":\"2026-09-21T15:37:10Z\"," +
+                "\"from\":\"hello@dev.uselettr.com\",\"from_name\":null,\"subject\":\"sdk audit probe\"," +
+                "\"recipients\":[\"vojta@ecomail.cz\"],\"num_recipients\":1," +
+                "\"accepted\":1,\"rejected\":0,\"tag\":null,\"failure_reason\":null,\"events\":[]}";
 
         ScheduledEmail response = gson.fromJson(json, ScheduledEmail.class);
-        assertEquals("123", response.getTransmissionId());
-        assertEquals("submitted", response.getState());
-        assertEquals("2024-01-16T10:00:00+00:00", response.getScheduledAt());
+        assertEquals("sch_01M322YMWVCZ4RNYXHMSSMDTM1", response.getRequestId());
+        assertNull(response.getTransmissionId());
+        assertEquals(ScheduledEmailState.SCHEDULED, response.getState());
+        assertEquals("2026-09-21T15:37:10Z", response.getScheduledAt());
+        assertEquals("sdk audit probe", response.getSubject());
+        assertNull(response.getFromName());
+        assertEquals(1, response.getNumRecipients());
+        assertEquals(1, response.getAccepted());
+        assertEquals(0, response.getRejected());
+        assertNull(response.getTag());
+        assertNull(response.getFailureReason());
         assertTrue(response.getEvents().isEmpty());
+    }
+
+    @Test
+    void scheduledEmailTransmissionIdIsNullUntilSent() {
+        String json = "{\"request_id\":\"sch_1\",\"transmission_id\":null,\"state\":\"scheduled\"}";
+
+        ScheduledEmail response = gson.fromJson(json, ScheduledEmail.class);
+        assertNull(response.getTransmissionId());
+        assertEquals("sch_1", response.getRequestId());
+    }
+
+    @Test
+    void scheduledEmailCollectionsDefaultWhenKeysAbsent() {
+        ScheduledEmail response = gson.fromJson("{\"request_id\":\"sch_1\",\"state\":\"scheduled\"}", ScheduledEmail.class);
+        assertTrue(response.getRecipients().isEmpty());
+        assertTrue(response.getEvents().isEmpty());
+    }
+
+    @Test
+    void scheduledEmailStateRoundTripsEveryWireValue() {
+        Map<String, ScheduledEmailState> expected = new LinkedHashMap<>();
+        expected.put("scheduled", ScheduledEmailState.SCHEDULED);
+        expected.put("sending", ScheduledEmailState.SENDING);
+        expected.put("sent", ScheduledEmailState.SENT);
+        expected.put("cancelled", ScheduledEmailState.CANCELLED);
+        expected.put("failed", ScheduledEmailState.FAILED);
+
+        for (Map.Entry<String, ScheduledEmailState> entry : expected.entrySet()) {
+            ScheduledEmail email = gson.fromJson("{\"state\":\"" + entry.getKey() + "\"}", ScheduledEmail.class);
+            assertEquals(entry.getValue(), email.getState(), entry.getKey());
+            assertEquals(entry.getKey(), WireValues.of(entry.getValue()));
+        }
+        assertEquals(expected.size(), ScheduledEmailState.values().length);
+    }
+
+    @Test
+    void scheduledEmailStateHelpers() {
+        assertTrue(ScheduledEmailState.SCHEDULED.isCancellable());
+        assertFalse(ScheduledEmailState.SENDING.isCancellable());
+        assertFalse(ScheduledEmailState.SENT.isCancellable());
+
+        assertFalse(ScheduledEmailState.SCHEDULED.isTerminal());
+        assertFalse(ScheduledEmailState.SENDING.isTerminal());
+        assertTrue(ScheduledEmailState.SENT.isTerminal());
+        assertTrue(ScheduledEmailState.CANCELLED.isTerminal());
+        assertTrue(ScheduledEmailState.FAILED.isTerminal());
+    }
+
+    @Test
+    void scheduledEmailCancelledShape() {
+        String json = "{\"request_id\":\"sch_1\",\"transmission_id\":null,\"state\":\"cancelled\"," +
+                "\"accepted\":0,\"rejected\":0,\"events\":[]}";
+
+        ScheduledEmail response = gson.fromJson(json, ScheduledEmail.class);
+        assertEquals(ScheduledEmailState.CANCELLED, response.getState());
+        assertEquals(0, response.getAccepted());
+    }
+
+    @Test
+    void scheduledEmailLegacyShapeHasNoRequestId() {
+        // Pre-Lettr-scheduling emails are answered from delivery events: no
+        // request_id, no accepted/rejected/tag/failure_reason.
+        String json = "{\"transmission_id\":\"7628931605070913075\",\"state\":\"sent\"," +
+                "\"scheduled_at\":\"2026-01-16T10:00:00+00:00\",\"from\":\"sender@example.com\"," +
+                "\"subject\":\"Newsletter\",\"recipients\":[\"user@example.com\"],\"num_recipients\":1,\"events\":[]}";
+
+        ScheduledEmail response = gson.fromJson(json, ScheduledEmail.class);
+        assertNull(response.getRequestId());
+        assertEquals("7628931605070913075", response.getTransmissionId());
+        assertEquals(0, response.getAccepted());
+
+        // Emails.getScheduled()/cancelScheduled() fill the gap with the id the
+        // caller asked about, so getRequestId() still addresses the email.
+        response.setRequestId("7628931605070913075");
+        assertEquals("7628931605070913075", response.getRequestId());
+    }
+
+    @Test
+    void listScheduledEmailsResponseDeserializes() {
+        String json = "{\"scheduled_emails\":[" +
+                "{\"request_id\":\"sch_a\",\"transmission_id\":null,\"state\":\"scheduled\"," +
+                "\"scheduled_at\":\"2026-09-28T09:50:53Z\",\"from\":\"hello@dev.uselettr.com\"," +
+                "\"subject\":\"ahoj\",\"recipients\":[\"vojta@ecomail.cz\"],\"num_recipients\":1," +
+                "\"accepted\":1,\"rejected\":0,\"events\":[]}," +
+                "{\"request_id\":\"sch_b\",\"transmission_id\":null,\"state\":\"cancelled\"," +
+                "\"accepted\":0,\"rejected\":0,\"events\":[]}]," +
+                "\"pagination\":{\"total\":2,\"per_page\":2,\"current_page\":1,\"last_page\":1}}";
+
+        ListScheduledEmailsResponse response = gson.fromJson(json, ListScheduledEmailsResponse.class);
+        assertEquals(2, response.getScheduledEmails().size());
+        assertEquals("sch_a", response.getScheduledEmails().get(0).getRequestId());
+        assertEquals(ScheduledEmailState.CANCELLED, response.getScheduledEmails().get(1).getState());
+        assertEquals(2, response.getPagination().getTotal());
+        assertEquals(2, response.getPagination().getPerPage());
+        assertEquals(1, response.getPagination().getCurrentPage());
+        assertEquals(1, response.getPagination().getLastPage());
+    }
+
+    @Test
+    void listScheduledEmailsResponseDefaultsToEmptyList() {
+        ListScheduledEmailsResponse response = gson.fromJson("{}", ListScheduledEmailsResponse.class);
+        assertTrue(response.getScheduledEmails().isEmpty());
+    }
+
+    // --- ListScheduledEmailsParams tests ---
+
+    @Test
+    void listScheduledEmailsParamsToQueryParams() {
+        ListScheduledEmailsParams params = ListScheduledEmailsParams.builder()
+                .page(2)
+                .perPage(50)
+                .status(ScheduledEmailState.SCHEDULED)
+                .build();
+
+        Map<String, String> queryParams = params.toQueryParams();
+        assertEquals("2", queryParams.get("page"));
+        assertEquals("50", queryParams.get("per_page"));
+        assertEquals("scheduled", queryParams.get("status"));
+    }
+
+    @Test
+    void listScheduledEmailsParamsEmptyToQueryParams() {
+        assertTrue(ListScheduledEmailsParams.builder().build().toQueryParams().isEmpty());
     }
 
     // --- Attachment builder tests ---
@@ -423,14 +556,14 @@ class EmailsTest {
     }
 
     @Test
-    void emailsGetScheduledRequiresTransmissionId() {
+    void emailsGetScheduledRequiresRequestId() {
         Emails emails = new Emails("test-key");
         assertThrows(IllegalArgumentException.class, () -> emails.getScheduled(null));
         assertThrows(IllegalArgumentException.class, () -> emails.getScheduled(""));
     }
 
     @Test
-    void emailsCancelScheduledRequiresTransmissionId() {
+    void emailsCancelScheduledRequiresRequestId() {
         Emails emails = new Emails("test-key");
         assertThrows(IllegalArgumentException.class, () -> emails.cancelScheduled(null));
         assertThrows(IllegalArgumentException.class, () -> emails.cancelScheduled(""));

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Scheduled emails were reworked server-side and this release follows that rework. Lettr used to hand a scheduled email straight to SparkPost, which made the provider's transmission the object you addressed; SparkPost retired per-transmission GET and DELETE, so Lettr now **owns the schedule** and only hands the email over when it is due. That moves the identity of a scheduled email, and this is the release where the client stops pretending otherwise.
+
+### Changed
+
+- **`ScheduledEmail.getState()` now returns `ScheduledEmailState`, not `String` — this will not compile against existing code.** Anything doing `"scheduled".equals(email.getState())` or `switch (email.getState())` over strings has to change to `email.getState() == ScheduledEmailState.SCHEDULED`. It is the one breaking change here, and it is deliberate: the old Javadoc listed the *provider's* states (`submitted`, `generating`, `delivered`, `bounced`, `unknown`), none of which a scheduled email reports any more. A string comparison against those values compiles perfectly and is silently always false — worse than a compile error, because it fails at the point where you decide whether an email still goes out. The five states are `SCHEDULED`, `SENDING`, `SENT`, `CANCELLED`, `FAILED`.
+
+  `ScheduledEmailState` carries `isCancellable()` (only `SCHEDULED` — from `SENDING` on, the provider has it and will not recall it) and `isTerminal()` (`SENT`, `CANCELLED`, `FAILED`, i.e. polling will never report anything new). `isCancellable()` is a local pre-check on a state you read at some earlier moment, not a guarantee: a cancel can still lose the race.
+- **`emails().schedule()` returns `ScheduledEmail`, not `CreateEmailResponse`.** The API now answers the create with the whole scheduled email, so the `sch_` id, the state and the scheduled time come back in one call instead of costing a follow-up GET. `CreateEmailResponse`'s three fields are all still there under the same names, so `getRequestId()` / `getAccepted()` / `getRejected()` keep working; only a declared `CreateEmailResponse` variable type needs updating.
+- **`emails().cancelScheduled()` returns the cancelled `ScheduledEmail` instead of `void`.** The endpoint changed from 204-no-content to 200 with a body, and the body is worth having: it is in state `CANCELLED` with `accepted` back to 0, which is the confirmation that nothing will be delivered. Existing calls that ignore the return value keep compiling.
+- **`getScheduled()` and `cancelScheduled()` take `requestId`, not `transmissionId`.** A rename only — the parameter position and type are unchanged — but the *value* you pass is different, and that is the part to read twice. See below.
+
+### Added
+
+- **`ScheduledEmail.getRequestId()`** — Lettr's own id, prefixed `sch_`, and the id that addresses a scheduled email. This is what `schedule()` hands you and what `getScheduled()` / `cancelScheduled()` expect.
+- **`ScheduledEmail.getTransmissionId()` is now `@Nullable`**, because it always could be and the annotation was a lie. It is the *provider's* id, it stays `null` until the email is actually sent, and it is the value that appears on **webhook events** — so it is what you correlate webhooks against, and `requestId` is not. Reading it while an email is still scheduled gets you `null`, by design, not by omission.
+
+  Passing an old numeric SparkPost transmission id to `getScheduled()` still works: the API answers it from delivery events, in a payload that carries no `request_id` at all. The SDK fills `requestId` in from the id you asked about, so `getRequestId()` is always the id that addresses the email you are holding, whichever era it came from.
+- **`emails().listScheduled()`** and `listScheduled(ListScheduledEmailsParams)` — `GET /emails/scheduled`, which did not exist before. Offset-paginated (`ListScheduledEmailsResponse.getPagination()` is the shared `OffsetPagination`, *not* the cursor pagination `emails().list()` uses), filterable by `status(ScheduledEmailState)`, `perPage` 1–100 defaulting to 25, `page` 1-based. This is the only way to find a scheduled email whose `sch_` id you did not keep.
+- **`ScheduledEmail.getAccepted()`, `getRejected()`, `getTag()`, `getFailureReason()`** — all four were already in the payload and silently dropped. `getFailureReason()` is populated only in the `FAILED` state; `getAccepted()` drops to 0 on cancel.
+
+### Fixed
+
+- `ScheduledEmail.getRecipients()` and `getEvents()` were annotated `@Nonnull` but returned the raw deserialized field, so they returned `null` whenever the API omitted the key — an NPE in the exact shape the annotation promised was impossible. Both now fall back to an empty list, matching `ListCampaignsResponse.getCampaigns()`.
+- `ScheduledEmail.getSubject()` is `@Nullable`. The API returns `null` for a template-only send; the getter claimed otherwise.
+- The scheduling window in `ScheduleEmailOptions`'s Javadoc said "within 3 days". It is **5 minutes to 30 days**; it has been 30 days since the rework, and the documented limit would have had callers rejecting valid sends client-side.
+- `ScheduleEmailOptions`'s `scheduled_at` was the only model field in the SDK relying on its literal Java name to reach the wire instead of `@SerializedName`. It now carries the annotation (and the field is named `scheduledAt`), so an obfuscated or shrunk build cannot silently drop the schedule and send the email immediately.
+
+### Notes
+
+- `HttpClient` gained `delete(path, responseType)` for the one endpoint that answers a bodyless DELETE with content. The existing `delete(path)`, `delete(path, queryParams)` and `delete(path, body, responseType)` are unchanged; the new overload is unambiguous against them because a `Type` is never a `Map`.
+
 ## [1.6.0] - 2026-09-10
 
 Brings this client level with lettr-php: template modules, the folders endpoint, preparation status, and idempotent sends. Everything is additive - code written against 1.5.1 keeps compiling and sends identical requests.

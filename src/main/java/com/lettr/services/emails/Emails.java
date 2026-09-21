@@ -2,8 +2,8 @@ package com.lettr.services.emails;
 
 import com.lettr.core.exception.LettrException;
 import com.lettr.core.net.HttpClient;
+import com.lettr.core.util.Args;
 import com.lettr.core.util.IdempotencyKeys;
-import com.lettr.core.net.HttpClient;
 import com.lettr.services.BaseService;
 import com.lettr.services.emails.model.*;
 
@@ -134,9 +134,7 @@ public class Emails extends BaseService {
      */
     @Nonnull
     public GetEmailResponse get(@Nonnull String requestId, @Nullable String from, @Nullable String to) throws LettrException {
-        if (requestId == null || requestId.isEmpty()) {
-            throw new IllegalArgumentException("requestId is required");
-        }
+        Args.requireNonEmpty("requestId", requestId);
         Map<String, String> params = null;
         if (from != null || to != null) {
             params = new LinkedHashMap<>();
@@ -149,42 +147,86 @@ public class Emails extends BaseService {
     /**
      * Schedule an email for future delivery.
      *
-     * @param options schedule email options including {@code scheduledAt}
-     * @return response containing the request ID and acceptance counts
+     * @param options schedule email options including {@code scheduledAt}, which
+     *                must be 5 minutes to 30 days in the future
+     * @return the scheduled email, including the {@code sch_} request ID that
+     *         addresses it
      * @throws LettrException if the request fails
      */
     @Nonnull
-    public CreateEmailResponse schedule(@Nonnull ScheduleEmailOptions options) throws LettrException {
-        return httpClient.post("/emails/scheduled", options, CreateEmailResponse.class);
+    public ScheduledEmail schedule(@Nonnull ScheduleEmailOptions options) throws LettrException {
+        return httpClient.post("/emails/scheduled", options, ScheduledEmail.class);
     }
 
     /**
-     * Get details of a scheduled email transmission.
+     * List scheduled emails with optional filtering and pagination.
      *
-     * @param transmissionId the transmission ID
-     * @return scheduled email details
+     * @param params optional query parameters; pass null for defaults
+     * @return a page of scheduled emails with pagination metadata
      * @throws LettrException if the request fails
-     * @throws IllegalArgumentException if {@code transmissionId} is null or empty
      */
     @Nonnull
-    public ScheduledEmail getScheduled(@Nonnull String transmissionId) throws LettrException {
-        if (transmissionId == null || transmissionId.isEmpty()) {
-            throw new IllegalArgumentException("transmissionId is required");
-        }
-        return httpClient.get("/emails/scheduled/" + HttpClient.encodePathSegment(transmissionId), null, ScheduledEmail.class);
+    public ListScheduledEmailsResponse listScheduled(@Nullable ListScheduledEmailsParams params) throws LettrException {
+        return httpClient.get("/emails/scheduled", params != null ? params.toQueryParams() : null,
+                ListScheduledEmailsResponse.class);
+    }
+
+    /** List scheduled emails with default pagination. */
+    @Nonnull
+    public ListScheduledEmailsResponse listScheduled() throws LettrException {
+        return listScheduled(null);
     }
 
     /**
-     * Cancel a scheduled email.
+     * Get a scheduled email.
      *
-     * @param transmissionId the transmission ID to cancel
+     * @param requestId the {@code sch_} request ID from
+     *                  {@link #schedule(ScheduleEmailOptions)} — <b>not</b> the
+     *                  provider transmission ID that webhook events carry
+     * @return the scheduled email
      * @throws LettrException if the request fails
-     * @throws IllegalArgumentException if {@code transmissionId} is null or empty
+     * @throws IllegalArgumentException if {@code requestId} is null or empty
      */
-    public void cancelScheduled(@Nonnull String transmissionId) throws LettrException {
-        if (transmissionId == null || transmissionId.isEmpty()) {
-            throw new IllegalArgumentException("transmissionId is required");
+    @Nonnull
+    public ScheduledEmail getScheduled(@Nonnull String requestId) throws LettrException {
+        Args.requireNonEmpty("requestId", requestId);
+        return withRequestId(
+                httpClient.get("/emails/scheduled/" + HttpClient.encodePathSegment(requestId), null, ScheduledEmail.class),
+                requestId);
+    }
+
+    /**
+     * Cancel a scheduled email. Only an email that has not yet been handed to
+     * the sending provider can be cancelled; see
+     * {@link ScheduledEmailState#isCancellable()}.
+     *
+     * @param requestId the {@code sch_} request ID to cancel — <b>not</b> the
+     *                  provider transmission ID that webhook events carry
+     * @return the cancelled email, in state
+     *         {@link ScheduledEmailState#CANCELLED} and with {@code accepted} back to 0
+     * @throws LettrException if the request fails
+     * @throws IllegalArgumentException if {@code requestId} is null or empty
+     */
+    @Nonnull
+    public ScheduledEmail cancelScheduled(@Nonnull String requestId) throws LettrException {
+        Args.requireNonEmpty("requestId", requestId);
+        return withRequestId(
+                httpClient.delete("/emails/scheduled/" + HttpClient.encodePathSegment(requestId), ScheduledEmail.class),
+                requestId);
+    }
+
+    /**
+     * Emails scheduled before Lettr owned the schedule are still addressed by
+     * their provider transmission ID, and the API answers those from delivery
+     * events in a payload that has no {@code request_id} at all. Filling it in
+     * keeps {@code getRequestId()} the id that addresses the email, whichever
+     * era it comes from.
+     */
+    @Nonnull
+    private ScheduledEmail withRequestId(@Nonnull ScheduledEmail email, @Nonnull String requestId) {
+        if (email.getRequestId() == null) {
+            email.setRequestId(requestId);
         }
-        httpClient.delete("/emails/scheduled/" + HttpClient.encodePathSegment(transmissionId));
+        return email;
     }
 }
