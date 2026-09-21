@@ -1,6 +1,12 @@
 package com.lettr.services.emails.model;
 
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
 
 /**
  * Lifecycle state of a scheduled email.
@@ -15,12 +21,35 @@ import com.google.gson.annotations.SerializedName;
  * <p>Wire values are defined by {@code @SerializedName}; use
  * {@link com.lettr.core.util.WireValues#of(Enum)} to retrieve them.
  */
+@JsonAdapter(ScheduledEmailState.Adapter.class)
 public enum ScheduledEmailState {
     @SerializedName("scheduled") SCHEDULED,
     @SerializedName("sending") SENDING,
     @SerializedName("sent") SENT,
     @SerializedName("cancelled") CANCELLED,
-    @SerializedName("failed") FAILED;
+    @SerializedName("failed") FAILED,
+
+    /*
+     * The states below are the sending provider's, not Lettr's. Reading back a
+     * legacy provider transmission id is answered from delivery events, which
+     * report the provider's vocabulary - so these arrive on that path only,
+     * never on a sch_ id.
+     */
+
+    /** @deprecated Legacy provider state, from a numeric transmission id. */
+    @Deprecated @SerializedName("submitted") SUBMITTED,
+
+    /** @deprecated Legacy provider state, from a numeric transmission id. */
+    @Deprecated @SerializedName("generating") GENERATING,
+
+    /** @deprecated Legacy provider state, from a numeric transmission id. */
+    @Deprecated @SerializedName("delivered") DELIVERED,
+
+    /** @deprecated Legacy provider state, from a numeric transmission id. */
+    @Deprecated @SerializedName("bounced") BOUNCED,
+
+    /** A state this version of the SDK does not know. */
+    @SerializedName("unknown") UNKNOWN;
 
     /**
      * Whether a cancel would still stop the email going out.
@@ -40,6 +69,41 @@ public enum ScheduledEmailState {
      * report anything new.
      */
     public boolean isTerminal() {
-        return this == SENT || this == CANCELLED || this == FAILED;
+        return this == SENT || this == CANCELLED || this == FAILED || this == DELIVERED || this == BOUNCED;
+    }
+
+    /**
+     * Reads the wire value, answering {@link #UNKNOWN} for one this version
+     * does not know.
+     *
+     * <p>Gson's default enum handling deserializes an unrecognised value to
+     * {@code null}, which would break {@link ScheduledEmail#getState()}'s
+     * {@code @Nonnull} contract - and a state the API adds later would then
+     * turn every read into a surprise NPE.
+     */
+    static final class Adapter extends TypeAdapter<ScheduledEmailState> {
+        @Override
+        public void write(JsonWriter out, ScheduledEmailState value) throws IOException {
+            if (value == null) {
+                out.nullValue();
+                return;
+            }
+            out.value(com.lettr.core.util.WireValues.of(value));
+        }
+
+        @Override
+        public ScheduledEmailState read(JsonReader in) throws IOException {
+            if (in.peek() == JsonToken.NULL) {
+                in.nextNull();
+                return UNKNOWN;
+            }
+            String wire = in.nextString();
+            for (ScheduledEmailState state : values()) {
+                if (com.lettr.core.util.WireValues.of(state).equals(wire)) {
+                    return state;
+                }
+            }
+            return UNKNOWN;
+        }
     }
 }

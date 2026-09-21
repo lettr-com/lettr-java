@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A legacy read returned a `null` state.** Reading back an old numeric
+  provider transmission id is answered from delivery events, which report the
+  *provider's* vocabulary — a delivered email comes back `delivered`, which is
+  none of the five Lettr states. Gson deserializes an unrecognised enum value
+  to `null`, so `getState()` broke its own `@Nonnull` contract and handed the
+  caller an NPE waiting to happen. `ScheduledEmailState` now carries
+  `SUBMITTED`, `GENERATING`, `DELIVERED` and `BOUNCED` — deprecated, because
+  only that path can produce them — and anything it still does not recognise
+  reads as `UNKNOWN` rather than null, so a state the API adds later cannot
+  break reads again.
+
 Scheduled emails were reworked server-side and this release follows that rework. Lettr used to hand a scheduled email straight to SparkPost, which made the provider's transmission the object you addressed; SparkPost retired per-transmission GET and DELETE, so Lettr now **owns the schedule** and only hands the email over when it is due. That moves the identity of a scheduled email, and this is the release where the client stops pretending otherwise.
 
 ### Changed

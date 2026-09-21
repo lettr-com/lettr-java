@@ -422,6 +422,12 @@ class EmailsTest {
         expected.put("sent", ScheduledEmailState.SENT);
         expected.put("cancelled", ScheduledEmailState.CANCELLED);
         expected.put("failed", ScheduledEmailState.FAILED);
+        // Only the legacy read path produces these, but it does produce them.
+        expected.put("submitted", ScheduledEmailState.SUBMITTED);
+        expected.put("generating", ScheduledEmailState.GENERATING);
+        expected.put("delivered", ScheduledEmailState.DELIVERED);
+        expected.put("bounced", ScheduledEmailState.BOUNCED);
+        expected.put("unknown", ScheduledEmailState.UNKNOWN);
 
         for (Map.Entry<String, ScheduledEmailState> entry : expected.entrySet()) {
             ScheduledEmail email = gson.fromJson("{\"state\":\"" + entry.getKey() + "\"}", ScheduledEmail.class);
@@ -567,5 +573,36 @@ class EmailsTest {
         Emails emails = new Emails("test-key");
         assertThrows(IllegalArgumentException.class, () -> emails.cancelScheduled(null));
         assertThrows(IllegalArgumentException.class, () -> emails.cancelScheduled(""));
+    }
+
+    @Test
+    void scheduledEmailReadsLegacyProviderState() {
+        // The legacy read path reports the provider's vocabulary, not Lettr's.
+        // A delivered email comes back "delivered", which is in neither the
+        // five Lettr states nor any sch_ response.
+        String json = "{\"transmission_id\":\"7685727204621206387\",\"state\":\"delivered\","
+                + "\"scheduled_at\":null,\"from\":\"sender@example.com\",\"from_name\":null,"
+                + "\"subject\":\"Legacy\",\"recipients\":[\"r@example.com\"],\"num_recipients\":1,"
+                + "\"events\":[]}";
+
+        ScheduledEmail email = new Gson().fromJson(json, ScheduledEmail.class);
+
+        assertEquals(ScheduledEmailState.DELIVERED, email.getState());
+        assertTrue(email.getState().isTerminal());
+        assertFalse(email.getState().isCancellable());
+    }
+
+    @Test
+    void unrecognisedStateReadsAsUnknownRatherThanNull() {
+        // Gson's default enum handling answers null here, which would break
+        // getState()'s @Nonnull contract for any state the API adds later.
+        String json = "{\"request_id\":\"sch_01JQZ3N2K8XW9V6M4TBRC7YHDE\","
+                + "\"state\":\"a_state_from_the_future\",\"from\":\"sender@example.com\","
+                + "\"recipients\":[],\"num_recipients\":0,\"events\":[]}";
+
+        ScheduledEmail email = new Gson().fromJson(json, ScheduledEmail.class);
+
+        assertEquals(ScheduledEmailState.UNKNOWN, email.getState());
+        assertFalse(email.getState().isCancellable());
     }
 }
