@@ -1,5 +1,7 @@
 package com.lettr.services.emails.model;
 
+import com.google.gson.annotations.SerializedName;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
@@ -9,15 +11,16 @@ import java.util.Map;
  * Options for scheduling an email for future delivery.
  *
  * <p>Extends {@link CreateEmailOptions} with a required {@code scheduledAt} field.
- * The scheduled time must be at least 5 minutes in the future and within 3 days.</p>
+ * The scheduled time must be at least 5 minutes in the future and within 30 days.</p>
  */
 public class ScheduleEmailOptions extends CreateEmailOptions {
 
-    private final String scheduled_at;
+    @SerializedName("scheduled_at")
+    private final String scheduledAt;
 
     private ScheduleEmailOptions(Builder builder) {
         super(builder);
-        this.scheduled_at = builder.scheduledAt;
+        this.scheduledAt = builder.scheduledAt;
     }
 
     @Nonnull
@@ -25,7 +28,7 @@ public class ScheduleEmailOptions extends CreateEmailOptions {
         return new Builder();
     }
 
-    @Nonnull public String getScheduledAt() { return scheduled_at; }
+    @Nonnull public String getScheduledAt() { return scheduledAt; }
 
     public static class Builder extends CreateEmailOptions.Builder {
         private String scheduledAt;
@@ -34,7 +37,7 @@ public class ScheduleEmailOptions extends CreateEmailOptions {
 
         /**
          * <b>(required)</b> Sets the scheduled delivery time in ISO 8601 format.
-         * Must be at least 5 minutes in the future and within 3 days.
+         * Must be at least 5 minutes in the future and within 30 days.
          */
         @Nonnull
         public Builder scheduledAt(@Nonnull String scheduledAt) {

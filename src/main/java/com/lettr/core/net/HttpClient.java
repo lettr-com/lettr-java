@@ -303,6 +303,33 @@ public class HttpClient {
     }
 
     /**
+     * Perform a DELETE request with no body, returning a deserialized response.
+     * Used by endpoints that answer 200 with the resource they just removed
+     * (e.g. cancelling a scheduled email), so the caller can see its final state
+     * without a follow-up GET that would now 404.
+     *
+     * @param path         API path
+     * @param responseType the type to deserialize the "data" field into
+     * @param <T>          response data type
+     * @return deserialized response data
+     * @throws LettrException on error
+     */
+    public <T> T delete(String path, Type responseType) throws LettrException {
+        String url = buildUrl(path, null);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(DEFAULT_TIMEOUT)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Accept", "application/json")
+                .header("User-Agent", USER_AGENT)
+                .DELETE()
+                .build();
+
+        return execute(request, responseType);
+    }
+
+    /**
      * Perform a DELETE request with a JSON body, returning a deserialized response.
      * Used by bulk delete endpoints that report counts.
      *
